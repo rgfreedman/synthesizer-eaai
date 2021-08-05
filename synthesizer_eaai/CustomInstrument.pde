@@ -17,8 +17,9 @@ public class CustomInstrument implements Instrument
 {
   //Encode the tree object, including the root as the starting point for patching
   private HashMap<UGen, ArrayList<UGen>> patchTree;
+  private SynthComponent[] components;
   //private UGen root;
-  public SynthComponent root; //WARNING: Reset to private... this is a quick debug test
+  private SynthComponent root;
   
   //Unique feature outside tree data structure is that the leaves producing audio all
   //  patch to the Summer UGen (which adds the soundwaves together) for output
@@ -62,7 +63,8 @@ public class CustomInstrument implements Instrument
   public void setupDebugPatch()
   {
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
-    setupDebugVCO();
+    //setupDebugVCO();
+    setupDebugLFO();
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
     //root.patch(toAudioOutput);
@@ -71,21 +73,44 @@ public class CustomInstrument implements Instrument
   public void drawDebugPatch()
   {
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
-    drawDebugVCO();
+    //drawDebugVCO();
+    drawDebugLFO();
   }
 
-  //For debugging of components, setup and draw functions that specifically test them
+  /*--For debugging of components, setup and draw functions that specifically test them--*/
   private void setupDebugVCO()
   {
     root = new VCO();
     root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
-    //Not using the instrument version, so have to patch to the speaker outselves
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
   }
   private void drawDebugVCO()
   {
     root.getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
     root.getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugLFO()
+  {
+    root = new LFO();
+    components = new SynthComponent[2];
+    components[0] = root;
+    components[1] = new VCO();
+    //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
+    root.getPatchOut(LFO_CONSTANTS.PATCHOUT_SINE).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_AMP));
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //To have the VCO kept constant, set the VCO knobs once and leave alone afterwards
+    components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(440.0 / 6000.0); //NOTE: Maybe allow knob to be directly set to a value?
+  }
+  private void drawDebugLFO()
+  {
+    root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
+    root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
     draw_update();
   }
 }
