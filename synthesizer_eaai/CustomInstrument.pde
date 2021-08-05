@@ -51,22 +51,41 @@ public class CustomInstrument implements Instrument
     toAudioOutput.unpatch(allInstruments_toOut);
   }
   
-  //Used to setup a simple preloaded patch, intended to make debugging quick
-  public void setupDebugPatch()
-  {
-    //Just patch an oscilator at a constant frequency directly to the local Summer
-    //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
-    //root.patch(toAudioOutput);
-    root = new VCO();
-    root.getPatchOut(VCO_CONSTANTS.OUTPATCH_SQUARE).patch(allInstruments_toOut);
-    //Not using the instrument version, so have to patch to the speaker outselves
-    toAudioOutput.patch(allInstruments_toOut);
-  }
-  
   //Performs updates to the instrument (via updates to each component) in the draw iteration
   public void draw_update()
   {
     //WARNING: Incomplete for now... just updating root
     root.draw_update();
+  }
+  
+  //Used to setup a simple preloaded patch, intended to make debugging quick
+  public void setupDebugPatch()
+  {
+    //Toggle the component tests, but ideally just one to avoid variable overwriting!
+    setupDebugVCO();
+    //Just patch an oscilator at a constant frequency directly to the local Summer
+    //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
+    //root.patch(toAudioOutput);
+  }
+  
+  public void drawDebugPatch()
+  {
+    //Toggle the component tests, but ideally just one to avoid variable overwriting!
+    drawDebugVCO();
+  }
+
+  //For debugging of components, setup and draw functions that specifically test them
+  private void setupDebugVCO()
+  {
+    root = new VCO();
+    root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    //Not using the instrument version, so have to patch to the speaker outselves
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  private void drawDebugVCO()
+  {
+    root.getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
+    root.getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
   }
 }

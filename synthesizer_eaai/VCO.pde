@@ -12,9 +12,9 @@ This component simply generates waves with specified properties.
 public static class VCO_CONSTANTS
 {
   //Indeces for input patches - these are the oscillator parameters
-  public static final int INPATCH_FREQ = 0;
-  public static final int INPATCH_AMP = INPATCH_FREQ + 1;
-  public static final int TOTAL_INPATCH = INPATCH_AMP + 1;
+  public static final int PATCHIN_FREQ = 0;
+  public static final int PATCHIN_AMP = PATCHIN_FREQ + 1;
+  public static final int TOTAL_PATCHIN = PATCHIN_AMP + 1;
   
   //No gates
   public static final int TOTAL_GATE = 0;
@@ -25,13 +25,13 @@ public static class VCO_CONSTANTS
   public static final int TOTAL_KNOB = KNOB_AMP + 1;
   
   //Indeces for output patches - these are the waveforms
-  public static final int OUTPATCH_SINE = 0;
-  public static final int OUTPATCH_SQUARE = OUTPATCH_SINE + 1;
-  public static final int OUTPATCH_TRIANGLE = OUTPATCH_SQUARE + 1;
-  public static final int OUTPATCH_SAW = OUTPATCH_TRIANGLE + 1;
-  public static final int OUTPATCH_PHASOR = OUTPATCH_SAW + 1;
-  public static final int OUTPATCH_QUARTERPULSE = OUTPATCH_PHASOR + 1;
-  public static final int TOTAL_OUTPATCH = OUTPATCH_QUARTERPULSE + 1;
+  public static final int PATCHOUT_SINE = 0;
+  public static final int PATCHOUT_SQUARE = PATCHOUT_SINE + 1;
+  public static final int PATCHOUT_TRIANGLE = PATCHOUT_SQUARE + 1;
+  public static final int PATCHOUT_SAW = PATCHOUT_TRIANGLE + 1;
+  public static final int PATCHOUT_PHASOR = PATCHOUT_SAW + 1;
+  public static final int PATCHOUT_QUARTERPULSE = PATCHOUT_PHASOR + 1;
+  public static final int TOTAL_PATCHOUT = PATCHOUT_QUARTERPULSE + 1;
 }
 
 public class VCO extends SynthComponent
@@ -55,7 +55,7 @@ public class VCO extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(VCO_CONSTANTS.TOTAL_INPATCH, VCO_CONSTANTS.TOTAL_OUTPATCH, VCO_CONSTANTS.TOTAL_GATE, VCO_CONSTANTS.TOTAL_KNOB);
+    super(VCO_CONSTANTS.TOTAL_PATCHIN, VCO_CONSTANTS.TOTAL_PATCHOUT, VCO_CONSTANTS.TOTAL_GATE, VCO_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[VCO_CONSTANTS.KNOB_FREQ] = new Knob(0, 6000); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
@@ -73,14 +73,14 @@ public class VCO extends SynthComponent
     out_quarterpulse = new Oscil(0.0, 0.0, Waves.QUARTERPULSE);
     
     //With the UGens all setup, fill in the external-facing ones for input/output
-    patchIn[VCO_CONSTANTS.INPATCH_FREQ] = totalFrequency;
-    patchIn[VCO_CONSTANTS.INPATCH_AMP] = totalAmplitude;
-    patchOut[VCO_CONSTANTS.OUTPATCH_SINE] = out_sine;
-    patchOut[VCO_CONSTANTS.OUTPATCH_SQUARE] = out_square;
-    patchOut[VCO_CONSTANTS.OUTPATCH_TRIANGLE] = out_triangle;
-    patchOut[VCO_CONSTANTS.OUTPATCH_SAW] = out_saw;
-    patchOut[VCO_CONSTANTS.OUTPATCH_PHASOR] = out_phasor;
-    patchOut[VCO_CONSTANTS.OUTPATCH_QUARTERPULSE] = out_quarterpulse;
+    patchIn[VCO_CONSTANTS.PATCHIN_FREQ] = totalFrequency;
+    patchIn[VCO_CONSTANTS.PATCHIN_AMP] = totalAmplitude;
+    patchOut[VCO_CONSTANTS.PATCHOUT_SINE] = out_sine;
+    patchOut[VCO_CONSTANTS.PATCHOUT_SQUARE] = out_square;
+    patchOut[VCO_CONSTANTS.PATCHOUT_TRIANGLE] = out_triangle;
+    patchOut[VCO_CONSTANTS.PATCHOUT_SAW] = out_saw;
+    patchOut[VCO_CONSTANTS.PATCHOUT_PHASOR] = out_phasor;
+    patchOut[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = out_quarterpulse;
     
     //Setup the patchwork for the internal components
     knobs[VCO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);

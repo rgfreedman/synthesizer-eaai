@@ -97,8 +97,5 @@ private void setupDebugInstrument()
 //Used to perform draw-level (looped) interactions with the preloaded test instrument
 private void drawDebugInstrument()
 {
-  //Test the knob
-  debugCustomInstrument.root.getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
-  debugCustomInstrument.root.getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
-  debugCustomInstrument.draw_update();
+  debugCustomInstrument.drawDebugPatch();
 }
