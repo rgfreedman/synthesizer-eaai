@@ -1,7 +1,7 @@
 /*VCO.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 01
+Last Updated: 2021 August 05
 
 Class for a voltage-controlled oscillator (VCO) component within a synthesized instrument.
 This component simply generates waves with specified properties.
@@ -41,10 +41,6 @@ public class VCO extends SynthComponent
   private Summer totalFrequency;
   private Summer totalAmplitude;
   
-  //Oscillators for each knob value (no amplitude or frequency, will rely on the offset)
-  private Oscil knob_freq;
-  private Oscil knob_amp;
-  
   //Oscillators for each wave output
   private Oscil out_sine;
   private Oscil out_square;
@@ -69,8 +65,6 @@ public class VCO extends SynthComponent
     totalFrequency = new Summer();
     totalAmplitude = new Summer();
     //NOTE: No frequency or amplitude for the output waveforms yet
-    knob_freq = new Oscil(0.0, 0.0, Waves.SINE);
-    knob_amp = new Oscil(0.0, 0.0, Waves.SINE);
     out_sine = new Oscil(0.0, 0.0, Waves.SINE);
     out_square = new Oscil(0.0, 0.0, Waves.SQUARE);
     out_triangle = new Oscil(0.0, 0.0, Waves.TRIANGLE);
@@ -89,8 +83,8 @@ public class VCO extends SynthComponent
     patchOut[VCO_CONSTANTS.OUTPATCH_QUARTERPULSE] = out_quarterpulse;
     
     //Setup the patchwork for the internal components
-    knob_freq.patch(totalFrequency);
-    knob_amp.patch(totalAmplitude);
+    knobs[VCO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);
+    knobs[VCO_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);
     totalFrequency.patch(out_sine.frequency);
     totalFrequency.patch(out_square.frequency);
     totalFrequency.patch(out_triangle.frequency);
@@ -109,7 +103,6 @@ public class VCO extends SynthComponent
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
-    knob_freq.offset.setLastValue(knobs[VCO_CONSTANTS.KNOB_FREQ].getCurrentValue());
-    knob_amp.offset.setLastValue(knobs[VCO_CONSTANTS.KNOB_AMP].getCurrentValue());
+    //Nothing here yet, knob updates are now done in Knob class (as they should)
   }
 }
