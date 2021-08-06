@@ -68,7 +68,8 @@ public class CustomInstrument implements Instrument
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
     //setupDebugVCO();
     //setupDebugLFO();
-    setupDebugPower();
+    //setupDebugPower();
+    setupDebugNoiseGenerator();
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
     //root.patch(toAudioOutput);
@@ -79,13 +80,16 @@ public class CustomInstrument implements Instrument
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
     //drawDebugVCO();
     //drawDebugLFO();
-    drawDebugPower();
+    //drawDebugPower();
+    drawDebugNoiseGenerator();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
   private void setupDebugVCO()
   {
     root = new VCO();
+    components = new SynthComponent[1];
+    components[0] = root;
     root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
@@ -137,6 +141,21 @@ public class CustomInstrument implements Instrument
   private void drawDebugPower()
   {
     root.getKnob(Power_CONSTANTS.KNOB_POWER).setCurrentPosition((float)mouseX / (float)width);
+    draw_update();
+  }
+  
+  private void setupDebugNoiseGenerator()
+  {
+    root = new NoiseGenerator();
+    components = new SynthComponent[1];
+    components[0] = root;
+    root.getPatchOut(NoiseGenerator_CONSTANTS.PATCHOUT_PINK).patch(allInstruments_toOut);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  private void drawDebugNoiseGenerator()
+  {
+    root.getKnob(NoiseGenerator_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
     draw_update();
   }
 }
