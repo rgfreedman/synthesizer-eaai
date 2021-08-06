@@ -20,11 +20,17 @@ public abstract class SynthComponent
   //Array of knobs (number available and what they do depend on component specs)
   protected Knob[] knobs;
   
+  //Array of patch cables, which should mirror the patch inputs and outputs above
+  protected PatchCable[] patchInCable;
+  protected PatchCable[] patchOutCable;
+  
   //Default Constructor - just make all arrays non-null, assuming one input/output
   public SynthComponent()
   {
     patchIn = new UGen[1];
+    patchInCable = new PatchCable[1];
     patchOut = new UGen[1];
+    patchOutCable = new PatchCable[1];
     gateIn = new UGen[1];
     knobs = new Knob[1];
   }
@@ -34,7 +40,9 @@ public abstract class SynthComponent
   {
     //When no items for an array, leave it null
     patchIn = (numPI > 0) ? new UGen[numPI] : null;
+    patchInCable = (numPI > 0) ? new PatchCable[numPI] : null;
     patchOut = (numPO > 0) ? new UGen[numPO] : null;
+    patchOutCable = (numPO > 0) ? new PatchCable[numPO] : null;
     gateIn = (numGI > 0) ? new UGen[numGI] : null;
     knobs = (numKnobs > 0) ? new Knob[numKnobs] : null;
   }
@@ -79,6 +87,19 @@ public abstract class SynthComponent
       return null;
     }
     return knobs[index];
+  }
+  
+  //Assign patch cables with this mutator method
+  //NOTE: This simply overwrites the pointer to the previous patch cable, which should
+  //      lead to garbage collection if BOTH the in and out patching components replace it
+  //      (This means pc should be null if the cable is simply removed!)
+  public void setCableIn(int index, PatchCable pc)
+  {
+    patchInCable[index] = pc;
+  }
+  public void setCableOut(int index, PatchCable pc)
+  {
+    patchOutCable[index] = pc;
   }
   
   //Implement in each component to do any per-draw-iteration updates

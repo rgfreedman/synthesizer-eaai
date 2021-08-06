@@ -69,7 +69,8 @@ public class CustomInstrument implements Instrument
     //setupDebugVCO();
     //setupDebugLFO();
     //setupDebugPower();
-    setupDebugNoiseGenerator();
+    //setupDebugNoiseGenerator();
+    setupDebugPatchCable();
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
     //root.patch(toAudioOutput);
@@ -81,7 +82,8 @@ public class CustomInstrument implements Instrument
     //drawDebugVCO();
     //drawDebugLFO();
     //drawDebugPower();
-    drawDebugNoiseGenerator();
+    //drawDebugNoiseGenerator();
+    drawDebugPatchCable();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -90,7 +92,7 @@ public class CustomInstrument implements Instrument
     root = new VCO();
     components = new SynthComponent[1];
     components[0] = root;
-    root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
   }
@@ -109,7 +111,7 @@ public class CustomInstrument implements Instrument
     components[1] = new VCO();
     //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
     root.getPatchOut(LFO_CONSTANTS.PATCHOUT_SINE).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_AMP));
-    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
     
@@ -131,7 +133,7 @@ public class CustomInstrument implements Instrument
     components[1] = new VCO();
     //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
     root.getPatchOut(Power_CONSTANTS.PATCHOUT_POWER).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_FREQ));
-    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
     
@@ -149,13 +151,36 @@ public class CustomInstrument implements Instrument
     root = new NoiseGenerator();
     components = new SynthComponent[1];
     components[0] = root;
-    root.getPatchOut(NoiseGenerator_CONSTANTS.PATCHOUT_PINK).patch(allInstruments_toOut);
+    root.getPatchOut(NoiseGenerator_CONSTANTS.PATCHOUT_PINK).patch(toAudioOutput);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
   }
   private void drawDebugNoiseGenerator()
   {
     root.getKnob(NoiseGenerator_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugPatchCable()
+  {
+    root = new LFO();
+    components = new SynthComponent[2];
+    components[0] = root;
+    components[1] = new VCO();
+    //Patch cable assigns itself and we do not need to track it (so it can garbage collect if replaced)
+    //  => simply instantiate it without assigning to a variable
+    new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], VCO_CONSTANTS.PATCHIN_AMP);
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+  }
+  private void drawDebugPatchCable()
+  {
+    components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
+    root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
     draw_update();
   }
 }
