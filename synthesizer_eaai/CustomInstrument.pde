@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 July 25
+Last Updated: 2021 August 06
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -55,8 +55,11 @@ public class CustomInstrument implements Instrument
   //Performs updates to the instrument (via updates to each component) in the draw iteration
   public void draw_update()
   {
-    //WARNING: Incomplete for now... just updating root
-    root.draw_update();
+    //Allow each component (root should be redundant) to update
+    for(int i = 0; i < components.length; i++)
+    {
+      components[i].draw_update();
+    }
   }
   
   //Used to setup a simple preloaded patch, intended to make debugging quick
@@ -64,7 +67,8 @@ public class CustomInstrument implements Instrument
   {
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
     //setupDebugVCO();
-    setupDebugLFO();
+    //setupDebugLFO();
+    setupDebugPower();
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
     //root.patch(toAudioOutput);
@@ -74,7 +78,8 @@ public class CustomInstrument implements Instrument
   {
     //Toggle the component tests, but ideally just one to avoid variable overwriting!
     //drawDebugVCO();
-    drawDebugLFO();
+    //drawDebugLFO();
+    drawDebugPower();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -111,6 +116,27 @@ public class CustomInstrument implements Instrument
   {
     root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugPower()
+  {
+    root = new Power();
+    components = new SynthComponent[2];
+    components[0] = root;
+    components[1] = new VCO();
+    //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
+    root.getPatchOut(Power_CONSTANTS.PATCHOUT_POWER).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_FREQ));
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(allInstruments_toOut);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //To have the VCO kept constant, set the VCO knobs once and leave alone afterwards
+    components[1].getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0); //NOTE: Maybe allow knob to be directly set to a value?
+  }
+  private void drawDebugPower()
+  {
+    root.getKnob(Power_CONSTANTS.KNOB_POWER).setCurrentPosition((float)mouseX / (float)width);
     draw_update();
   }
 }
