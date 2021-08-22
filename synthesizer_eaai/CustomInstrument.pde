@@ -18,6 +18,8 @@ public class CustomInstrument implements Instrument
   //Encode the tree object, including the root as the starting point for patching
   private HashMap<UGen, ArrayList<UGen>> patchTree;
   private SynthComponent[] components;
+  //Keep track of the patches through copies of the pointers
+  private PatchCable[] patches;
   //private UGen root;
   private SynthComponent root;
   
@@ -70,7 +72,9 @@ public class CustomInstrument implements Instrument
     //setupDebugLFO();
     //setupDebugPower();
     //setupDebugNoiseGenerator();
-    setupDebugPatchCable();
+    //setupDebugPatchCable();
+    setupDebugMultiples();
+    
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
     //root.patch(toAudioOutput);
@@ -83,7 +87,8 @@ public class CustomInstrument implements Instrument
     //drawDebugLFO();
     //drawDebugPower();
     //drawDebugNoiseGenerator();
-    drawDebugPatchCable();
+    //drawDebugPatchCable();
+    drawDebugMultiples();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -169,17 +174,55 @@ public class CustomInstrument implements Instrument
     components[1] = new VCO();
     //Patch cable assigns itself and we do not need to track it (so it can garbage collect if replaced)
     //  => simply instantiate it without assigning to a variable
-    new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], VCO_CONSTANTS.PATCHIN_AMP);
+    patches = new PatchCable[1];
+    patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], VCO_CONSTANTS.PATCHIN_AMP);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
     components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
     toAudioOutput.patch(allInstruments_toOut);
     
+    //Force the LFO to have max amplitude for maximum tremolo
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
   }
   private void drawDebugPatchCable()
   {
     components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
+    root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugMultiples()
+  {
+    //For test purposes, patch the LFO to three different oscillators for a synced chord
+    //  with dynamic rate of tremolo
+    root = new LFO();
+    components = new SynthComponent[5];
+    components[0] = root;
+    components[1] = new Multiples();
+    components[2] = new VCO();
+    components[3] = new VCO();
+    components[4] = new VCO();
+    patches = new PatchCable[4];
+    patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
+    patches[1] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY0, components[2], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[2] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[3] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY2, components[4], VCO_CONSTANTS.PATCHIN_AMP);
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    //Set the frequency knobs of the VCOs to be constant, forcing a harmonic chord
+    components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)440 / (float)components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),5)) / (float)components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),9)) / (float)components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the LFO to have max amplitude for maximum tremolo
+    root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+  }
+  private void drawDebugMultiples()
+  {
     root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
     draw_update();
   }

@@ -47,4 +47,7 @@ public class PatchCable
   public int getPatchInIndex() {return patchInIndex;}
   public SynthComponent getPatchOutComponent() {return patchOutSynComp;}
   public int getPatchOutIndex() {return patchOutIndex;}
+  //Simplified accessor for getting the actual UGen based on the component and index
+  public UGen getPatchIn() {return patchInSynComp.getPatchIn(patchInIndex);}
+  public UGen getPatchOut() {return patchOutSynComp.getPatchOut(patchOutIndex);}
 }
