@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 06
+Last Updated: 2021 August 22
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -74,7 +74,8 @@ public class CustomInstrument implements Instrument
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
     //setupDebugMultiples();
-    setupDebugVCA();
+    //setupDebugVCA();
+    setupDebugEG_ADSR();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -90,7 +91,8 @@ public class CustomInstrument implements Instrument
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
     //drawDebugMultiples();
-    drawDebugVCA();
+    //drawDebugVCA();
+    drawDebugEG_ADSR();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -255,6 +257,54 @@ public class CustomInstrument implements Instrument
   {
     root.getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
     components[1].getKnob(VCA_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseX / (float)width);
+    draw_update();
+  }
+  
+  private void setupDebugEG_ADSR()
+  {
+    root = new Power(); //Pseudo-keyboard, will flip like a switch instead of knob
+    components = new SynthComponent[4];
+    components[0] = root;
+    components[1] = new VCO();
+    components[2] = new Multiples(); //Will copy the power to use for frequency and gate
+    components[3] = new EnvelopeGenerator();
+    patches = new PatchCable[4];
+    patches[0] = new PatchCable(components[0], Power_CONSTANTS.PATCHOUT_POWER, components[2], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
+    patches[1] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY0, components[1], VCO_CONSTANTS.PATCHIN_FREQ);
+    //patches[2] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], EnvelopeGenerator_CONSTANTS.GATE_PLAYNOTE);
+    patches[2] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
+    patches[3] = new PatchCable(components[1], VCO_CONSTANTS.PATCHOUT_SQUARE, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
+    
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[3].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(0.0); //Only Power sets the frequency
+    components[1].getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP).setCurrentPosition(0.0);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP).setCurrentPosition(0.0);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP).setCurrentPosition(1.0);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN).setCurrentPosition(0.5);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_DECAY).setCurrentPosition(0.333333); //Since [0,3], this should be about 1 second
+  }
+  private void drawDebugEG_ADSR()
+  {
+    //Set the attack and release based on the mouse position
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_ATTACK).setCurrentPosition((float)mouseX / (float)width);
+    components[3].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_RELEASE).setCurrentPosition((float)mouseY / (float)height);
+    //Use the square brackets to set the power knob, acting more like a switch flip
+    if(key == '[')
+    {
+      components[0].getKnob(Power_CONSTANTS.KNOB_POWER).setCurrentPosition((float)440 / (float)components[0].getKnob(Power_CONSTANTS.KNOB_POWER).getMaximumValue());
+      System.out.println("Turn on the power!");
+    }
+    else if(key == ']')
+    {
+      components[0].getKnob(Power_CONSTANTS.KNOB_POWER).setCurrentPosition(0.0);
+      System.out.println("Turn off the power!");
+    }
     draw_update();
   }
 }

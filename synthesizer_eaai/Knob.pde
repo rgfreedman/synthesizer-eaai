@@ -53,6 +53,10 @@ public class Knob
   public float getCurrentPosition() {return currentPosition;}
   public float getMinimumPosition() {return MINIMUM_POSITION;}
   public float getMaximumPosition() {return MAXIMUM_POSITION;}
+  //Accessor that gets the current value of the knob as a number, needed in at least ADSR envelope
+  //Yes, the position part currently simplifies to currentPosition, but using the 
+  //  generalized version just-in-case it changes later
+  public float getCurrentValue_float() {return minimumValue + ((maximumValue - minimumValue) * ((currentPosition - MINIMUM_POSITION) / (MAXIMUM_POSITION - MINIMUM_POSITION)));}
   
   //Mutator methods - only the current position can actually change
   public float setCurrentPosition(float newPos)
