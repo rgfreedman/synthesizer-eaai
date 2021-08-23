@@ -73,7 +73,8 @@ public class CustomInstrument implements Instrument
     //setupDebugPower();
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
-    setupDebugMultiples();
+    //setupDebugMultiples();
+    setupDebugVCA();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -88,7 +89,8 @@ public class CustomInstrument implements Instrument
     //drawDebugPower();
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
-    drawDebugMultiples();
+    //drawDebugMultiples();
+    drawDebugVCA();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -224,6 +226,35 @@ public class CustomInstrument implements Instrument
   private void drawDebugMultiples()
   {
     root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugVCA()
+  {
+    //Rather than another boring volume change, let's use the extremely large amplitudes
+    //  for a noticeable frequency modulation!
+    root = new VCO();
+    components = new SynthComponent[3];
+    components[0] = root;
+    components[1] = new VCA();
+    components[2] = new VCO();
+    patches = new PatchCable[2];
+    patches[0] = new PatchCable(components[0], VCO_CONSTANTS.PATCHOUT_SINE, components[1], VCA_CONSTANTS.PATCHIN_WAVE);
+    patches[1] = new PatchCable(components[1], VCA_CONSTANTS.PATCHOUT_WAVE, components[2], VCO_CONSTANTS.PATCHIN_FREQ);
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the non-modulated knobs to have fixed values for testing purposes
+    root.getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+    components[2].getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+    components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)440 / (float)components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue()); //Need a base frequency
+  }
+  private void drawDebugVCA()
+  {
+    root.getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    components[1].getKnob(VCA_CONSTANTS.KNOB_AMP).setCurrentPosition((float)mouseX / (float)width);
     draw_update();
   }
 }
