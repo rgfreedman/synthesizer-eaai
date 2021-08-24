@@ -75,7 +75,8 @@ public class CustomInstrument implements Instrument
     //setupDebugPatchCable();
     //setupDebugMultiples();
     //setupDebugVCA();
-    setupDebugEG_ADSR();
+    //setupDebugEG_ADSR();
+    setupDebugKeyboard();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -92,7 +93,8 @@ public class CustomInstrument implements Instrument
     //drawDebugPatchCable();
     //drawDebugMultiples();
     //drawDebugVCA();
-    drawDebugEG_ADSR();
+    //drawDebugEG_ADSR();
+    drawDebugKeyboard();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -305,6 +307,67 @@ public class CustomInstrument implements Instrument
       components[0].getKnob(Power_CONSTANTS.KNOB_POWER).setCurrentPosition(0.0);
       System.out.println("Turn off the power!");
     }
+    draw_update();
+  }
+  
+  private void setupDebugKeyboard()
+  {
+    root = new Keyboard();
+    components = new SynthComponent[31]; //Yes, it is a lot because we need one envelope, multiple, and oscillator per key
+    patches = new PatchCable[40]; //Because each key's setup needs 4 patches, phew!
+    components[0] = root;
+    for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
+    {
+      //Instantiate the trio of components that go with a single key
+      components[1 + (3 * i)] = new Multiples();
+      components[2 + (3 * i)] = new EnvelopeGenerator();
+      components[3 + (3 * i)] = new VCO();
+      //Simple patch to make an enveloped square wave play for the key
+      patches[4 * i] = new PatchCable(components[0], i, components[1 + (3 * i)], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
+      patches[1 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples_CONSTANTS.PATCHOUT_COPY0, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
+      patches[2 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3 + (3 * i)], VCO_CONSTANTS.PATCHIN_FREQ);
+      patches[3 + (4 * i)] = new PatchCable(components[3 + (3 * i)], VCO_CONSTANTS.PATCHOUT_SQUARE, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
+      
+      //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+      components[2 + (3 * i)].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+      
+      //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+      components[3 + (3 * i)].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(0.0); //Only Keyboard sets the frequency
+      components[3 + (3 * i)].getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP).setCurrentPosition(0.0);
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP).setCurrentPosition(0.0);
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP).setCurrentPosition(1.0);
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN).setCurrentPosition(0.5);
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_DECAY).setCurrentPosition(0.333333); //Since [0,3], this should be about 1 second
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_ATTACK).setCurrentPosition(0.16667); //Since [0,3], this should be about 0.5 seconds
+      components[2 + (3 * i)].getKnob(EnvelopeGenerator_CONSTANTS.KNOB_RELEASE).setCurrentPosition(0.666667); //Since [0,3], this should be about 2 seconds
+    }
+    
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  private void drawDebugKeyboard()
+  {
+    //To avoid needing to integrate the test with the keyPress and keyRelease listeners,
+    //  simply assume the lowercase turns a note on and uppercase turns it off (use the
+    //  lowercase character for the sake of binding)
+    if(Character.isLowerCase(key))
+    {
+      int assignedIndex = ((Keyboard)components[0]).set_key(key, Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz());
+      if(assignedIndex >= 0)
+      {
+        System.out.println("Playing key " + assignedIndex + " bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    else if(Character.isUpperCase(key))
+    {
+      boolean unassignedIndex = ((Keyboard)components[0]).unset_key(Character.toLowerCase(key));
+      if(unassignedIndex)
+      {
+        System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    
     draw_update();
   }
 }
