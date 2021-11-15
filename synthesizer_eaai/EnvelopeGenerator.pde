@@ -126,6 +126,11 @@ public class EnvelopeGenerator extends SynthComponent
         //If the value is 0 (or close enough to 0), then stop a note if one is playing
         if(note_playing)
         {
+          //If a patch is not present yet, then do not try to patch the UGens (null will cause errors)
+          if((patchOutCable != null) && (patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] != null) && (patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE].getPatchIn() != null))
+          {
+            envelope.unpatchAfterRelease(patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE].getPatchIn());
+          }
           envelope.noteOff();
           note_playing = false;
         }
@@ -145,6 +150,11 @@ public class EnvelopeGenerator extends SynthComponent
             knobs[EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP].getCurrentValue_float(),
             knobs[EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP].getCurrentValue_float()); //Closes envelope.setParameters
           envelope.noteOn();
+          //If a patch is not present yet, then do not try to patch the UGens (null will cause errors)
+          if((patchOutCable != null) && (patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] != null) && (patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE].getPatchIn() != null))
+          {
+            envelope.patch(patchOutCable[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE].getPatchIn());
+          }
           note_playing = true;
         }
       }

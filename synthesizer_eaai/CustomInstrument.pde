@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 22
+Last Updated: 2021 November 15
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -76,7 +76,8 @@ public class CustomInstrument implements Instrument
     //setupDebugMultiples();
     //setupDebugVCA();
     //setupDebugEG_ADSR();
-    setupDebugKeyboard();
+    //setupDebugKeyboard();
+    setupDebugVCF();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -94,7 +95,8 @@ public class CustomInstrument implements Instrument
     //drawDebugMultiples();
     //drawDebugVCA();
     //drawDebugEG_ADSR();
-    drawDebugKeyboard();
+    //drawDebugKeyboard();
+    drawDebugVCF();
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/
@@ -368,6 +370,35 @@ public class CustomInstrument implements Instrument
       }
     }
     
+    draw_update();
+  }
+  
+  private void setupDebugVCF()
+  {
+    //Rather than another boring volume change, let's use the extremely large amplitudes
+    //  for a noticeable frequency modulation!
+    root = new VCF();
+    components = new SynthComponent[3];
+    components[0] = root;
+    components[1] = new VCA();
+    components[2] = new NoiseGenerator();
+    patches = new PatchCable[2];
+    patches[0] = new PatchCable(components[2], NoiseGenerator_CONSTANTS.PATCHOUT_PINK, components[0], VCF_CONSTANTS.PATCHIN_WAVE);
+    patches[1] = new PatchCable(components[0], VCF_CONSTANTS.PATCHOUT_WAVE, components[1], VCA_CONSTANTS.PATCHIN_WAVE);
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[1].getPatchOut(VCA_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the non-modulated knobs to have fixed values for testing purposes
+    root.getKnob(VCF_CONSTANTS.KNOB_RES).setCurrentPosition(0.0); //No resonance
+    components[1].getKnob(VCA_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0); //Set the volume all the way up
+    components[2].getKnob(NoiseGenerator_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0); //Set the volume all the way up
+  }
+  private void drawDebugVCF()
+  {
+    root.getKnob(VCF_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    root.getKnob(VCF_CONSTANTS.KNOB_PASS).setCurrentPosition((float)mouseX / (float)width);
     draw_update();
   }
 }
