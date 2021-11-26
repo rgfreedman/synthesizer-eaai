@@ -15,9 +15,6 @@ public static class Power_CONSTANTS
   //No inputs
   public static final int TOTAL_PATCHIN = 0;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Index for the knob
   public static final int KNOB_POWER = 0;
   public static final int TOTAL_KNOB = KNOB_POWER + 1;
@@ -35,13 +32,20 @@ public class Power extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(Power_CONSTANTS.TOTAL_PATCHIN, Power_CONSTANTS.TOTAL_PATCHOUT, Power_CONSTANTS.TOTAL_GATE, Power_CONSTANTS.TOTAL_KNOB);
+    super(Power_CONSTANTS.TOTAL_PATCHIN, Power_CONSTANTS.TOTAL_PATCHOUT, Power_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knob
     knobs[Power_CONSTANTS.KNOB_POWER] = new Knob(0, 6000); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     
+    //Label for the knob in the GUI
+    knobsLabel[Power_CONSTANTS.KNOB_POWER] = "FREQ";
+    
     //The patchable output is simply the knob's value, noting how much voltage (frequency) to send
     patchOut[Power_CONSTANTS.PATCHOUT_POWER] = knobs[Power_CONSTANTS.KNOB_POWER].getCurrentValue();
+    
+    //Label for the patch in the GUI
+    patchOutLabel[Power_CONSTANTS.PATCHOUT_POWER] = "FREQ OUT";
+    componentName = "Power";
   }
   
   //Implement in each component to do any per-draw-iteration updates

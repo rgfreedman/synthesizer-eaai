@@ -18,9 +18,6 @@ public static class LFO_CONSTANTS
   public static final int PATCHIN_AMP = PATCHIN_FREQ + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_AMP + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Indeces for knobs - same as input patches in this case
   public static final int KNOB_FREQ = 0;
   public static final int KNOB_AMP = KNOB_FREQ + 1;
@@ -57,7 +54,7 @@ public class LFO extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(LFO_CONSTANTS.TOTAL_PATCHIN, LFO_CONSTANTS.TOTAL_PATCHOUT, LFO_CONSTANTS.TOTAL_GATE, LFO_CONSTANTS.TOTAL_KNOB);
+    super(LFO_CONSTANTS.TOTAL_PATCHIN, LFO_CONSTANTS.TOTAL_PATCHOUT, LFO_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[LFO_CONSTANTS.KNOB_FREQ] = new Knob(0, 20); //Low frequency is usually up to 20 Hz (beats per second)
@@ -83,6 +80,17 @@ public class LFO extends SynthComponent
     patchOut[LFO_CONSTANTS.PATCHOUT_SAW] = out_saw;
     patchOut[LFO_CONSTANTS.PATCHOUT_PHASOR] = out_phasor;
     patchOut[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = out_quarterpulse;
+    
+    //Labels for the patches in the GUI
+    componentName = "LFO";
+    patchInLabel[LFO_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
+    patchInLabel[LFO_CONSTANTS.PATCHIN_AMP] = "AMP";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SINE] = "SINE WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SAW] = "SAW WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
     
     //Setup the patchwork for the internal components
     knobs[LFO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);

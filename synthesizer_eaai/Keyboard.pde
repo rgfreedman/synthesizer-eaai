@@ -21,9 +21,6 @@ public static class Keyboard_CONSTANTS
   //  10 power-like knobs under the hood)
   public static final int TOTAL_PATCHIN = 0;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //No knobs that are public-facing (keyboard controls them with key presses)
   public static final int TOTAL_KNOB = 0;
   
@@ -59,7 +56,7 @@ public class Keyboard extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(Keyboard_CONSTANTS.TOTAL_PATCHIN, Keyboard_CONSTANTS.TOTAL_PATCHOUT, Keyboard_CONSTANTS.TOTAL_GATE, Keyboard_CONSTANTS.TOTAL_KNOB);
+    super(Keyboard_CONSTANTS.TOTAL_PATCHIN, Keyboard_CONSTANTS.TOTAL_PATCHOUT, Keyboard_CONSTANTS.TOTAL_KNOB);
 
     //Set up the internals of the component with the UGen elements from Minim
     keys = new Constant[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
@@ -72,7 +69,10 @@ public class Keyboard extends SynthComponent
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
     {
       patchOut[i] = keys[i];
+      //Label for the GUI
+      patchOutLabel[i] = "FREQ OUT";
     }
+    componentName = "Keyboard";
     
     //No patchwork for the internal components because each constant is independent of the others
     

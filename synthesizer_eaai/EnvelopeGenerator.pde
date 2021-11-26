@@ -29,10 +29,6 @@ public static class EnvelopeGenerator_CONSTANTS
   public static final int PATCHIN_GATE = PATCHIN_WAVE + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_GATE + 1;
   
-  //Indeces for the gates - this triggers when the note starts and stops
-  public static final int GATE_PLAYNOTE = 0;
-  public static final int TOTAL_GATE = GATE_PLAYNOTE + 1;
-  
   //Indeces for knobs - one per value to include in the generated envelope
   public static final int KNOB_STARTAMP = 0;
   public static final int KNOB_MAXAMP = KNOB_STARTAMP + 1;
@@ -72,7 +68,7 @@ public class EnvelopeGenerator extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(EnvelopeGenerator_CONSTANTS.TOTAL_PATCHIN, EnvelopeGenerator_CONSTANTS.TOTAL_PATCHOUT, EnvelopeGenerator_CONSTANTS.TOTAL_GATE, EnvelopeGenerator_CONSTANTS.TOTAL_KNOB);
+    super(EnvelopeGenerator_CONSTANTS.TOTAL_PATCHIN, EnvelopeGenerator_CONSTANTS.TOTAL_PATCHOUT, EnvelopeGenerator_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     //The amplitude value knobs are bound to [0,1]
@@ -84,6 +80,15 @@ public class EnvelopeGenerator extends SynthComponent
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_ATTACK] = new Knob(0.0, 3.0);
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_DECAY] = new Knob(0.0, 3.0);
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_RELEASE] = new Knob(0.0, 3.0);
+    
+    //Labels for the knobs in the GUI
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP] = "AMP START";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP] = "AMP MAX";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN] = "SUSTAIN";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP] = "AMP END";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_ATTACK] = "ATTACK";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_DECAY] = "DECAY";
+    knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_RELEASE] = "RELEASE";
 
     //Set up the internals of the component with the UGen elements from Minim
     envelope = new ADSR(); //Knobs will be synced in the draw step before gate has first chance to play a note
@@ -94,8 +99,13 @@ public class EnvelopeGenerator extends SynthComponent
     patchIn[EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE] = envelope;
     patchOut[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] = envelope;
     
-    gateIn[EnvelopeGenerator_CONSTANTS.GATE_PLAYNOTE] = gate;
     patchIn[EnvelopeGenerator_CONSTANTS.PATCHIN_GATE] = gate;
+    
+    //Labels for the patches in the GUI
+    patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
+    patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_GATE] = "GATE";
+    patchOutLabel[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
+    componentName = "Envelope Generator";
     
     //Patch internal components together (envelope and gate are disjoint, but gate needs ground)
     gate.patch(ground);

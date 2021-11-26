@@ -16,9 +16,6 @@ public static class VCO_CONSTANTS
   public static final int PATCHIN_AMP = PATCHIN_FREQ + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_AMP + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Indeces for knobs - same as input patches in this case
   public static final int KNOB_FREQ = 0;
   public static final int KNOB_AMP = KNOB_FREQ + 1;
@@ -55,11 +52,15 @@ public class VCO extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(VCO_CONSTANTS.TOTAL_PATCHIN, VCO_CONSTANTS.TOTAL_PATCHOUT, VCO_CONSTANTS.TOTAL_GATE, VCO_CONSTANTS.TOTAL_KNOB);
+    super(VCO_CONSTANTS.TOTAL_PATCHIN, VCO_CONSTANTS.TOTAL_PATCHOUT, VCO_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[VCO_CONSTANTS.KNOB_FREQ] = new Knob(0, 6000); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     knobs[VCO_CONSTANTS.KNOB_AMP] = new Knob(0.0, 1.0); //Amplitude is in [0,1]
+    
+    //Labels for knobs in GUI
+    knobsLabel[VCO_CONSTANTS.KNOB_FREQ] = "FREQ";
+    knobsLabel[VCO_CONSTANTS.KNOB_AMP] = "AMP";
 
     //Set up the internals of the component with the UGen elements from Minim
     totalFrequency = new Summer();
@@ -81,6 +82,17 @@ public class VCO extends SynthComponent
     patchOut[VCO_CONSTANTS.PATCHOUT_SAW] = out_saw;
     patchOut[VCO_CONSTANTS.PATCHOUT_PHASOR] = out_phasor;
     patchOut[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = out_quarterpulse;
+    
+    //Labels for patches in GUI
+    patchInLabel[VCO_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
+    patchInLabel[VCO_CONSTANTS.PATCHIN_AMP] = "AMP IN";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SINE] = "SINE WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SAW] = "SAW WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
+    componentName = "VCO";
     
     //Setup the patchwork for the internal components
     knobs[VCO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);

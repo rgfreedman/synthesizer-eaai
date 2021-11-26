@@ -17,9 +17,6 @@ public static class VCF_CONSTANTS
   public static final int PATCHIN_RES = PATCHIN_FREQ + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_RES + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Indeces for knobs - same as input patches in this case
   public static final int KNOB_FREQ = 0;
   public static final int KNOB_RES = KNOB_FREQ + 1;
@@ -47,12 +44,17 @@ public class VCF extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(VCF_CONSTANTS.TOTAL_PATCHIN, VCF_CONSTANTS.TOTAL_PATCHOUT, VCF_CONSTANTS.TOTAL_GATE, VCF_CONSTANTS.TOTAL_KNOB);
+    super(VCF_CONSTANTS.TOTAL_PATCHIN, VCF_CONSTANTS.TOTAL_PATCHOUT, VCF_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[VCF_CONSTANTS.KNOB_FREQ] = new Knob(0.0, 6000.0); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     knobs[VCF_CONSTANTS.KNOB_RES] = new Knob(0.0, 1.0); //Resonance is in [0,1]
     knobs[VCF_CONSTANTS.KNOB_PASS] = new Knob(0.0, 3.0); //Resonance is in {0,1,2}, which is based on truncation from [0,3)
+    
+    //Label for knob in GUI
+    knobsLabel[VCF_CONSTANTS.KNOB_FREQ] = "FREQ";
+    knobsLabel[VCF_CONSTANTS.KNOB_RES] = "RESONANCE";
+    knobsLabel[VCF_CONSTANTS.KNOB_PASS] = "PASS";
 
     //Set up the internals of the component with the UGen elements from Minim
     totalFrequency = new Summer();
@@ -64,6 +66,13 @@ public class VCF extends SynthComponent
     patchIn[VCF_CONSTANTS.PATCHIN_FREQ] = totalFrequency;
     patchIn[VCF_CONSTANTS.PATCHIN_RES] = totalResonance;
     patchOut[VCF_CONSTANTS.PATCHOUT_WAVE] = waveFilter;
+    
+    //Label for patches in GUI
+    patchInLabel[VCF_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
+    patchInLabel[VCF_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
+    patchInLabel[VCF_CONSTANTS.PATCHIN_RES] = "RESONANCE IN";
+    patchOutLabel[VCF_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
+    componentName = "VCF";
     
     //Setup the patchwork for the internal components
     knobs[VCF_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);

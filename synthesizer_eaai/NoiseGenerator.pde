@@ -16,9 +16,6 @@ public static class NoiseGenerator_CONSTANTS
   public static final int PATCHIN_AMP = 0;
   public static final int TOTAL_PATCHIN = PATCHIN_AMP + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Indeces for knobs - same as input patches in this case
   public static final int KNOB_AMP = 0;
   public static final int TOTAL_KNOB = KNOB_AMP + 1;
@@ -47,10 +44,13 @@ public class NoiseGenerator extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(NoiseGenerator_CONSTANTS.TOTAL_PATCHIN, NoiseGenerator_CONSTANTS.TOTAL_PATCHOUT, NoiseGenerator_CONSTANTS.TOTAL_GATE, NoiseGenerator_CONSTANTS.TOTAL_KNOB);
+    super(NoiseGenerator_CONSTANTS.TOTAL_PATCHIN, NoiseGenerator_CONSTANTS.TOTAL_PATCHOUT, NoiseGenerator_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[NoiseGenerator_CONSTANTS.KNOB_AMP] = new Knob(0.0, 1.0); //Amplitude is in [0,1]
+
+    //Label for the knob in the GUI
+    knobsLabel[NoiseGenerator_CONSTANTS.KNOB_AMP] = "AMP";
 
     //Set up the internals of the component with the UGen elements from Minim
     totalAmplitude = new Summer();
@@ -64,6 +64,13 @@ public class NoiseGenerator extends SynthComponent
     patchOut[NoiseGenerator_CONSTANTS.PATCHOUT_WHITE] = out_white;
     patchOut[NoiseGenerator_CONSTANTS.PATCHOUT_PINK] = out_pink;
     patchOut[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = out_brown;
+    
+    //Labels for the patches in the GUI
+    patchInLabel[NoiseGenerator_CONSTANTS.PATCHIN_AMP] = "AMP";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_WHITE] = "WHITE NOISE";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_PINK] = "PINK NOISE";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = "BROWN NOISE";
+    componentName = "Noise Generator";
     
     //Setup the patchwork for the internal components
     knobs[NoiseGenerator_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);

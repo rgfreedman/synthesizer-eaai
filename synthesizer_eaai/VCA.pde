@@ -16,9 +16,6 @@ public static class VCA_CONSTANTS
   public static final int PATCHIN_AMP = PATCHIN_WAVE + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_AMP + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //Indeces for knobs - just the amplitude for a constant modification (can also make
   //                    > 1 via the knob for frequency modulation purposes)
   public static final int KNOB_AMP = 0;
@@ -43,10 +40,13 @@ public class VCA extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(VCA_CONSTANTS.TOTAL_PATCHIN, VCA_CONSTANTS.TOTAL_PATCHOUT, VCA_CONSTANTS.TOTAL_GATE, VCA_CONSTANTS.TOTAL_KNOB);
+    super(VCA_CONSTANTS.TOTAL_PATCHIN, VCA_CONSTANTS.TOTAL_PATCHOUT, VCA_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
     knobs[VCA_CONSTANTS.KNOB_AMP] = new Knob(0.0, 100.0); //Amplitude is in [0,100]
+    
+    //Label for knob in GUI
+    knobsLabel[VCA_CONSTANTS.KNOB_AMP] = "AMP";
 
     //Set up the internals of the component with the UGen elements from Minim
     totalAmplitude = new Summer();
@@ -56,6 +56,12 @@ public class VCA extends SynthComponent
     patchIn[VCA_CONSTANTS.PATCHIN_WAVE] = waveModifier;
     patchIn[VCA_CONSTANTS.PATCHIN_AMP] = totalAmplitude;
     patchOut[VCA_CONSTANTS.PATCHOUT_WAVE] = waveModifier;
+    
+    //Labels for patches in the GUI
+    patchInLabel[VCA_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
+    patchInLabel[VCA_CONSTANTS.PATCHIN_AMP] = "AMP IN";
+    patchOutLabel[VCA_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
+    componentName = "VCA";
     
     //Setup the patchwork for the internal components
     knobs[VCA_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);

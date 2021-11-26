@@ -15,9 +15,6 @@ public static class Multiples_CONSTANTS
   public static final int PATCHIN_ORIGINAL = 0;
   public static final int TOTAL_PATCHIN = PATCHIN_ORIGINAL + 1;
   
-  //No gates
-  public static final int TOTAL_GATE = 0;
-  
   //No knobs
   public static final int TOTAL_KNOB = 0;
   
@@ -46,7 +43,7 @@ public class Multiples extends SynthComponent
     //Processing doesn't like a class's own variables passed during construction because
     //  they are not initialized yet (cannot make static in Processing, either)...
     //  Luckily, we can make a static class with the static variables and use them!
-    super(Multiples_CONSTANTS.TOTAL_PATCHIN, Multiples_CONSTANTS.TOTAL_PATCHOUT, Multiples_CONSTANTS.TOTAL_GATE, Multiples_CONSTANTS.TOTAL_KNOB);
+    super(Multiples_CONSTANTS.TOTAL_PATCHIN, Multiples_CONSTANTS.TOTAL_PATCHOUT, Multiples_CONSTANTS.TOTAL_KNOB);
 
     //Set up the internals of the component with the UGen elements from Minim
     identity = new Summer();
@@ -63,6 +60,19 @@ public class Multiples extends SynthComponent
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY6] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY7] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY8] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
+  
+    //Labels for the patches in the GUI
+    componentName = "Multiples";
+    patchInLabel[Multiples_CONSTANTS.PATCHIN_ORIGINAL] = "WAVE IN";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY0] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY1] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY2] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY3] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY4] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY5] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY6] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY7] = "WAVE OUT";
+    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY8] = "WAVE OUT";
   }
   
   //Implement in each component to do any per-draw-iteration updates
