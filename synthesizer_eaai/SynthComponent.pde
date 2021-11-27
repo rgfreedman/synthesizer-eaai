@@ -1,7 +1,7 @@
 /*SynthComponent.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 26
+Last Updated: 2021 November 27
 
 Class for a component within a synthesized instrument.  This is a superclass with the
 most basic features in all components (UI elements, knobs, patch and gate in/out, etc.).
@@ -171,14 +171,14 @@ public abstract class SynthComponent
     //For simplicity, make the labels half the size of a knob (since portrayed as a slider)
     textSize(Render_CONSTANTS.KNOB_HEIGHT / 2);
     
-    for(int i = 0; i < patchIn.length; i++)
+    for(int i = 0; i < ((patchIn != null) ? patchIn.length : 0); i++)
     {
       //Render a patch hole if a patch is defined in this entry
       //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
       if(patchIn[i] != null)
       {
         //If provided, include label for the patch
-        if(patchInLabel[i] != null)
+        if((patchInLabel != null) && (patchInLabel[i] != null))
         {
           text(patchInLabel[i], xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 8), yOffset + Render_CONSTANTS.PATCH_RADIUS + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
         }
@@ -187,14 +187,14 @@ public abstract class SynthComponent
       }
     }
     
-    for(int i = 0; i < patchOut.length; i++)
+    for(int i = 0; i < ((patchOut != null) ? patchOut.length : 0); i++)
     {
       //Render a patch hole if a patch is defined in this entry
       //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
       if(patchOut[i] != null)
       {
         //If provided, include label for the patch
-        if(patchOutLabel[i] != null)
+        if((patchOutLabel != null) && (patchOutLabel[i] != null))
         {
           text(patchOutLabel[i], xOffset + ((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8), yOffset + Render_CONSTANTS.PATCH_RADIUS + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
         }
@@ -205,14 +205,14 @@ public abstract class SynthComponent
     
     //Now render the knobs, laying them out along the component
     //  Each knob is a rectangle to resemble a slider, including a "cursor" for the position
-    for(int i = 0; i < knobs.length; i++)
+    for(int i = 0; i < ((knobs != null) ? knobs.length : 0); i++)
     {
       //Render a knob if a patch is defined in this entry
       //  This is to avoid sliding on nothing, or can align knobs to pretty-print component
       if(knobs[i] != null)
       {
         //If provided, include label for the patch
-        if(knobsLabel[i] != null)
+        if((knobsLabel != null) && (knobsLabel[i] != null))
         {
           //Reset colors to black since knob cursor is red, but label should be black
           fill(0, 0, 0);

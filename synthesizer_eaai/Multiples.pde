@@ -1,7 +1,7 @@
 /*Multiples.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 22
+Last Updated: 2021 November 27
 
 Class for a multiples component within a synthesized instrument.
 This component simply copies a wave input to allow multiple copies of it as outputs.
@@ -27,8 +27,7 @@ public static class Multiples_CONSTANTS
   public static final int PATCHOUT_COPY5 = PATCHOUT_COPY4 + 1;
   public static final int PATCHOUT_COPY6 = PATCHOUT_COPY5 + 1;
   public static final int PATCHOUT_COPY7 = PATCHOUT_COPY6 + 1;
-  public static final int PATCHOUT_COPY8 = PATCHOUT_COPY7 + 1;
-  public static final int TOTAL_PATCHOUT = PATCHOUT_COPY8 + 1;
+  public static final int TOTAL_PATCHOUT = PATCHOUT_COPY7 + 1;
 }
 
 public class Multiples extends SynthComponent
@@ -59,7 +58,6 @@ public class Multiples extends SynthComponent
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY5] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY6] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
     patchOut[Multiples_CONSTANTS.PATCHOUT_COPY7] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
-    patchOut[Multiples_CONSTANTS.PATCHOUT_COPY8] = patchIn[Multiples_CONSTANTS.PATCHIN_ORIGINAL];
   
     //Labels for the patches in the GUI
     componentName = "Multiples";
@@ -72,7 +70,6 @@ public class Multiples extends SynthComponent
     patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY5] = "WAVE OUT";
     patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY6] = "WAVE OUT";
     patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY7] = "WAVE OUT";
-    patchOutLabel[Multiples_CONSTANTS.PATCHOUT_COPY8] = "WAVE OUT";
   }
   
   //Implement in each component to do any per-draw-iteration updates
