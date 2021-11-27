@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 July 25
+Last Updated: 2021 November 26
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -27,6 +27,7 @@ public final boolean DEBUG_SYSTEM = true; //For general procedural stuff, like c
 
 void setup()
 {
+  //size(Render_CONSTANTS.APP_WIDTH, Render_CONSTANTS.APP_HEIGHT, P2D);
   size(1000, 1000, P2D);
   
   //Initialize the Minim and AudioOutput objects
@@ -55,6 +56,10 @@ void setup()
 
 void draw()
 {
+  //Reset the drawn image with a cleared background to a default color
+  clear();
+  background(200, 200, 200);
+  
   //For easy access to a testbed, do things with a special custom instrument when debugging
   if(DEBUG_SYSTEM)
   {

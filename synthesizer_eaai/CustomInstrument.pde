@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 15
+Last Updated: 2021 November 26
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -15,6 +15,7 @@ import java.util.ArrayList;
 
 public class CustomInstrument implements Instrument
 {
+  //NOTE: Keep patchTree, components, patches, and root for DEBUG legacy only---no longer used in the actual code
   //Encode the tree object, including the root as the starting point for patching
   private HashMap<UGen, ArrayList<UGen>> patchTree;
   private SynthComponent[] components;
@@ -22,6 +23,10 @@ public class CustomInstrument implements Instrument
   private PatchCable[] patches;
   //private UGen root;
   private SynthComponent root;
+  
+  //All components and patch cables are stored in respective ArrayList objects for dynamic support
+  private ArrayList<SynthComponent> componentsList;
+  private ArrayList<PatchCable> patchesList;
   
   //Unique feature outside tree data structure is that the leaves producing audio all
   //  patch to the Summer UGen (which adds the soundwaves together) for output
@@ -33,8 +38,14 @@ public class CustomInstrument implements Instrument
     patchTree = new HashMap();
     root = null;
     
+    componentsList = new ArrayList();
+    patchesList = new ArrayList();
+    
     //Initialize the summer so that there is something that tries to play when ready
     toAudioOutput = new Summer();
+    
+    //Due to the design of this synthesizer, patching is maintained even when notes do not play
+    toAudioOutput.patch(allInstruments_toOut);
   }
   
   //Methods needed for the Instrument interface
@@ -57,10 +68,77 @@ public class CustomInstrument implements Instrument
   //Performs updates to the instrument (via updates to each component) in the draw iteration
   public void draw_update()
   {
+    //Need to compute global position of component in GUI
+    int xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+    int yOffset = Render_CONSTANTS.UPPER_BORDER_HEIGHT;
+    int horizSlot = 0;
+    int vertSlot = 0;
+    
     //Allow each component (root should be redundant) to update
     for(int i = 0; i < components.length; i++)
     {
       components[i].draw_update();
+      components[i].render(xOffset, yOffset);
+      
+      //Shift offsets based on tiled components
+      horizSlot++;
+      if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
+      {
+        horizSlot = 0;
+        vertSlot++;
+        xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+        yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
+        
+        //If the vertical offset is too great, then abandon generating more components
+        if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
+        {
+          break;
+        }
+      }
+      else
+      {
+        xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
+      }
+    }
+  }
+  
+  //Renders the components of this instrument
+  public void render()
+  {
+    //Need to compute global position of component in GUI
+    int xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+    int yOffset = Render_CONSTANTS.UPPER_BORDER_HEIGHT;
+    int horizSlot = 0;
+    int vertSlot = 0;
+    
+    //Iterate over components and calculate their global offset (since rendered locally)
+    for(int i = 0; i < componentsList.size(); i++)
+    {
+      //Make sure the component exists first (just in case it is null)
+      if(componentsList.get(i) != null)
+      {
+        componentsList.get(i).render(xOffset, yOffset);
+      }
+      
+      //Shift offsets based on tiled components
+      horizSlot++;
+      if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
+      {
+        horizSlot = 0;
+        vertSlot++;
+        xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+        yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
+        
+        //If the vertical offset is too great, then abandon generating more components
+        if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
+        {
+          break;
+        }
+      }
+      else
+      {
+        xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
+      }
     }
   }
   

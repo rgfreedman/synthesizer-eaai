@@ -1,7 +1,7 @@
 /*SynthComponent.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 01
+Last Updated: 2021 November 26
 
 Class for a component within a synthesized instrument.  This is a superclass with the
 most basic features in all components (UI elements, knobs, patch and gate in/out, etc.).
@@ -139,4 +139,89 @@ public abstract class SynthComponent
   //Implement in each component to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public abstract void draw_update();
+  
+  //Renders the component, accounting for spacing of patch holes, knobs, and the labels
+  //NOTE: Renders locally (within the component's rectangle); need global coordinates for offset
+  public void render(int xOffset, int yOffset)
+  {
+    //As the lowest layer of the GUI image for the component,
+    //  render the component's box as a rectangle
+    stroke(0, 0, 0); //Black stroke
+    fill(128, 128, 128); //light-grey fill
+    rect(xOffset, yOffset, Render_CONSTANTS.COMPONENT_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT);
+    
+    //All text should be centered about the specified (x,y) coordinates per text() call
+    textAlign(CENTER, CENTER);
+    //Like font, set the size of all text on this component (measured in pixels)
+    //For simplicity, make the same size as a knob (since portrayed as a slider)
+    textSize(Render_CONSTANTS.KNOB_HEIGHT);
+    
+    //Next, render the component name in the top-center of the component
+    if(componentName != null)
+    {
+      fill(0, 0, 0); //Black text
+      text(componentName, xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
+    }
+    
+    //Now render the patches, laying them out along the component
+    //  Each patch is a uniformly-sized circle, set to be solid black (like a hole)
+    fill(0, 0, 0);
+    stroke(0, 0, 0);
+    
+    //For simplicity, make the labels half the size of a knob (since portrayed as a slider)
+    textSize(Render_CONSTANTS.KNOB_HEIGHT / 2);
+    
+    for(int i = 0; i < patchIn.length; i++)
+    {
+      //Render a patch hole if a patch is defined in this entry
+      //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
+      if(patchIn[i] != null)
+      {
+        //If provided, include label for the patch
+        if(patchInLabel[i] != null)
+        {
+          text(patchInLabel[i], xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 8), yOffset + Render_CONSTANTS.PATCH_RADIUS + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
+        }
+        //First two values are center, width and height are equal for circle
+        ellipse(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+      }
+    }
+    
+    for(int i = 0; i < patchOut.length; i++)
+    {
+      //Render a patch hole if a patch is defined in this entry
+      //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
+      if(patchOut[i] != null)
+      {
+        //If provided, include label for the patch
+        if(patchOutLabel[i] != null)
+        {
+          text(patchOutLabel[i], xOffset + ((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8), yOffset + Render_CONSTANTS.PATCH_RADIUS + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
+        }
+        //First two values are center, width and height are equal for circle
+        ellipse(xOffset + ((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+      }
+    }
+    
+    //Now render the knobs, laying them out along the component
+    //  Each knob is a rectangle to resemble a slider, including a "cursor" for the position
+    for(int i = 0; i < knobs.length; i++)
+    {
+      //Render a knob if a patch is defined in this entry
+      //  This is to avoid sliding on nothing, or can align knobs to pretty-print component
+      if(knobs[i] != null)
+      {
+        //If provided, include label for the patch
+        if(knobsLabel[i] != null)
+        {
+          //Reset colors to black since knob cursor is red, but label should be black
+          fill(0, 0, 0);
+          stroke(0, 0, 0);
+          text(knobsLabel[i], xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2), yOffset + (Render_CONSTANTS.KNOB_HEIGHT / 2) + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)));
+        }
+        //Unlike the ellipse, these are the top-left corner of the rectangle
+        knobs[i].render(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2) - (Render_CONSTANTS.KNOB_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)));
+      }
+    }
+  }
 }
