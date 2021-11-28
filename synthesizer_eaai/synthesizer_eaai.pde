@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 26
+Last Updated: 2021 November 27
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -27,8 +27,10 @@ public final boolean DEBUG_SYSTEM = true; //For general procedural stuff, like c
 
 void setup()
 {
+  //NOTE: Must provide magic numbers to size(...), not static constants
+  //      Make sure the APP_... constant values match the size(...) arguments to render properly
   //size(Render_CONSTANTS.APP_WIDTH, Render_CONSTANTS.APP_HEIGHT, P2D);
-  size(1000, 1000, P2D);
+  size(1000, 800, P2D);
   
   //Initialize the Minim and AudioOutput objects
   minim = new Minim( this );

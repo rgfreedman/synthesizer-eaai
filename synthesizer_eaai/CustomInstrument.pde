@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 26
+Last Updated: 2021 November 27
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -27,6 +27,8 @@ public class CustomInstrument implements Instrument
   //All components and patch cables are stored in respective ArrayList objects for dynamic support
   private ArrayList<SynthComponent> componentsList;
   private ArrayList<PatchCable> patchesList;
+  //The one exception is the keyboard, which is included as a default component outside the list
+  private Keyboard keyboard;
   
   //Unique feature outside tree data structure is that the leaves producing audio all
   //  patch to the Summer UGen (which adds the soundwaves together) for output
@@ -40,6 +42,7 @@ public class CustomInstrument implements Instrument
     
     componentsList = new ArrayList();
     patchesList = new ArrayList();
+    keyboard = new Keyboard();
     
     //Initialize the summer so that there is something that tries to play when ready
     toAudioOutput = new Summer();
@@ -74,31 +77,20 @@ public class CustomInstrument implements Instrument
     int horizSlot = 0;
     int vertSlot = 0;
     
-    //Allow each component (root should be redundant) to update
-    for(int i = 0; i < components.length; i++)
+    //Allow each component to update
+    for(int i = 0; i < componentsList.size(); i++)
     {
-      components[i].draw_update();
-      components[i].render(xOffset, yOffset);
-      
-      //Shift offsets based on tiled components
-      horizSlot++;
-      if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
+      //Make sure the component exists first (just in case it is null)
+      if(componentsList.get(i) != null)
       {
-        horizSlot = 0;
-        vertSlot++;
-        xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
-        yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
-        
-        //If the vertical offset is too great, then abandon generating more components
-        if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
-        {
-          break;
-        }
+        componentsList.get(i).draw_update();
       }
-      else
-      {
-        xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
-      }
+    }
+    
+    //The keyboard is standalone => call its update separately
+    if(keyboard != null)
+    {
+      keyboard.draw_update();
     }
   }
   
@@ -140,6 +132,13 @@ public class CustomInstrument implements Instrument
         xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
       }
     }
+    
+    
+    //The keyboard is standalone => call its render separately
+    if(keyboard != null)
+    {
+      keyboard.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    }
   }
   
   //Used to setup a simple preloaded patch, intended to make debugging quick
@@ -151,11 +150,11 @@ public class CustomInstrument implements Instrument
     //setupDebugPower();
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
-    //setupDebugMultiples();
+    setupDebugMultiples();
     //setupDebugVCA();
     //setupDebugEG_ADSR();
     //setupDebugKeyboard();
-    setupDebugVCF();
+    //setupDebugVCF();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -170,11 +169,53 @@ public class CustomInstrument implements Instrument
     //drawDebugPower();
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
-    //drawDebugMultiples();
+    drawDebugMultiples();
     //drawDebugVCA();
     //drawDebugEG_ADSR();
     //drawDebugKeyboard();
-    drawDebugVCF();
+    //drawDebugVCF();
+    
+    //Can now test rendering, no matter what components are shown (copied here from 
+    //  render(...) above due to change from components to componentsList data structure
+    //Need to compute global position of component in GUI
+    int xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+    int yOffset = Render_CONSTANTS.UPPER_BORDER_HEIGHT;
+    int horizSlot = 0;
+    int vertSlot = 0;
+    
+    //Allow each component (root should be redundant) to update
+    for(int i = 0; i < components.length; i++)
+    {
+      components[i].draw_update();
+      components[i].render(xOffset, yOffset);
+      
+      //Shift offsets based on tiled components
+      horizSlot++;
+      if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
+      {
+        horizSlot = 0;
+        vertSlot++;
+        xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+        yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
+        
+        //If the vertical offset is too great, then abandon generating more components
+        if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
+        {
+          break;
+        }
+      }
+      else
+      {
+        xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
+      }
+    }
+    
+    //The keyboard is standalone => call its update separately
+    if(keyboard != null)
+    {
+      keyboard.draw_update();
+      keyboard.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    }
   }
 
   /*--For debugging of components, setup and draw functions that specifically test them--*/

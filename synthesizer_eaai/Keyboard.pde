@@ -1,7 +1,7 @@
 /*Keyboard.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 24
+Last Updated: 2021 November 27
 
 Class for a keyboard component within a synthesized instrument.
 This component sends frequency information for a pressed key that can act as dynamic
@@ -135,5 +135,89 @@ public class Keyboard extends SynthComponent
     
     //Return true to confirm the undone assignment
     return true;
+  }
+  
+  //Override the render command for SynthComponent superclass because the keyboard is
+  //  very different in design (show subset of patches and knobs, mostly keys) and 
+  //  should be part of all instruments (rather than as a possible component)
+  public void render(int xOffset, int yOffset)
+  {
+    //As the lowest layer of the GUI image for the component,
+    //  render the component's box as a rectangle (rather than a component, fills lower border)
+    stroke(0, 0, 0); //Black stroke
+    fill(128, 128, 128); //light-grey fill
+    rect(xOffset, yOffset, Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    
+    //All text should be centered about the specified (x,y) coordinates per text() call
+    textAlign(CENTER, CENTER);
+    //Like font, set the size of all text on this component (measured in pixels)
+    //For simplicity, make the same size as a knob (since portrayed as a slider)
+    textSize(Render_CONSTANTS.KNOB_HEIGHT);
+    
+    //Next, render the component name in the top-center of the component
+    if(componentName != null)
+    {
+      fill(0, 0, 0); //Black text
+      text(componentName, xOffset + (Render_CONSTANTS.LOWER_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
+    }
+    
+    //Despite all the output patches, these are to allow instrument polyphony (simultaneous
+    //  notes at once) => only allow one of these patches (the first) to be used in the GUI
+    //Each patch is a uniformly-sized circle, set to be solid black (like a hole)
+    fill(0, 0, 0);
+    stroke(0, 0, 0);
+    
+    //For simplicity, make the labels half the size of a knob (since portrayed as a slider)
+    textSize(Render_CONSTANTS.KNOB_HEIGHT / 2);
+    
+    //Render a patch hole if a patch is defined in this entry
+    //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
+    if((patchOut != null) && (patchOut[Keyboard_CONSTANTS.PATCHOUT_KEY0] != null))
+    {
+      //If provided, include label for the patch
+      if((patchOutLabel != null) && (patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0] != null))
+      {
+        text(patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0], xOffset + (Render_CONSTANTS.LEFT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.PATCH_RADIUS);
+      }
+      //First two values are center, width and height are equal for circle
+      ellipse(xOffset + (Render_CONSTANTS.LEFT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+    }
+    
+    //Now render the keys on the keyboard, natural are tiled first with halftones on top
+    stroke(0, 0, 0); //Black stroke
+    fill(255, 255, 255); //White fill
+    for(int i = 0; i < Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL; i++)
+    {
+      //Begin the natural keys in the lower border without intersection with the left
+      //  border (used for the output patch), and center vertically
+      rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (i * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH, Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT);
+    }
+    //NOTE: Halftones have fun spacing because of the 5 halftones vs. 7 naturals in one octave
+    //      Easier to tile from right-to-left due to pattern being partially done in lowest octave
+    stroke(0, 0, 0); //Black stroke
+    fill(0, 0, 0); //Black fill
+    int halftoneOffset = Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL - 1; //Right-most key is natural, not halftone, which starts offset pattern
+    for(int i = 0; i < (Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL / Render_CONSTANTS.KEYBOARD_HALFTONE_OCTAVE); i++) //Per complete octave
+    {
+      halftoneOffset--; //No halftone key (enharmonic B# = C)
+      for(int j = 0; j < 3; j++) //3 halftone keys in a row
+      {
+        //Begin the halftone keys based on spacing horizontally (position with respect to
+        //  natural keys and offset to one-third the width) and aligned on top
+        rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        halftoneOffset--;
+      }
+      halftoneOffset--; //No halftone key (enharmonic E# = F)
+      for(int j = 0; j < 2; j++) //2 halftone keys in a row
+      {
+        //Begin the halftone keys based on spacing horizontally (position with respect to
+        //  natural keys and offset to one-third the width) and aligned on top
+        rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        halftoneOffset--;
+      }
+    }
+    //Just one halftone key leftover...
+    halftoneOffset--; //No halftone key (enharmonic B# = C)
+    rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
   }
 }
