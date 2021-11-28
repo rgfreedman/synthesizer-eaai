@@ -37,6 +37,7 @@ public static class Render_CONSTANTS
   //  is added as a later feature
   public static final int TILE_HORIZ_COUNT = 5;
   public static final int TILE_VERT_COUNT = 2;
+  public static final int MAX_SYNTH_COMPONENTS = TILE_HORIZ_COUNT * TILE_VERT_COUNT;
   
   //An assumed limit to the number of in-patches, knobs, or out-patches in a single component
   public static final int MAX_IN_PATCH = 9;

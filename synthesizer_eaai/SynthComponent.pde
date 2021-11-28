@@ -29,6 +29,8 @@ public abstract class SynthComponent
   
   //Name of the component (for GUI display)
   protected String componentName;
+  //Unique name for the component (to disambiguate identical components in GUI)
+  protected String uniqueName;
   
   //Default Constructor - just make all arrays non-null, assuming one input/output
   public SynthComponent()
@@ -43,6 +45,7 @@ public abstract class SynthComponent
     knobsLabel = new String[1];
     
     componentName = "";
+    uniqueName = "";
   }
   
   //Typical Constructor - set up all the arrays with the number of patches and gates
@@ -59,6 +62,7 @@ public abstract class SynthComponent
     knobsLabel = (numKnobs > 0) ? new String[numKnobs] : null;
     
     componentName = "";
+    uniqueName = "";
   }
   
   //Accessors for the UGens based on indexing for each array
@@ -113,6 +117,13 @@ public abstract class SynthComponent
     return patchOutCable[index];
   }
   
+  //Accessors for the names
+  public String getComponentName() {return componentName;}
+  public String getUniqueName() {return uniqueName;}
+  
+  //Mutator for the unique name only (component name should not be changed outside its constructor setting)
+  public void setUniqueName(String n) {uniqueName = n;}
+  
   //Assign patch cables with this mutator method
   //NOTE: This simply overwrites the pointer to the previous patch cable, which should
   //      lead to garbage collection if BOTH the in and out patching components replace it
@@ -160,7 +171,7 @@ public abstract class SynthComponent
     if(componentName != null)
     {
       fill(0, 0, 0); //Black text
-      text(componentName, xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
+      text(componentName + ((uniqueName.equals("")) ? "":(" (" + uniqueName + ")")), xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
     }
     
     //Now render the patches, laying them out along the component

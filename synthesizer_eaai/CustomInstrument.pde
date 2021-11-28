@@ -13,6 +13,8 @@ map from the parent to a list of children.
 import java.util.HashMap;
 import java.util.ArrayList;
 
+import java.lang.Exception; //Needed for a special case that should only scream at the code developers for not keeping features up-to-date, not at anyone using the code as-is
+
 public class CustomInstrument implements Instrument
 {
   //NOTE: Keep patchTree, components, patches, and root for DEBUG legacy only---no longer used in the actual code
@@ -30,19 +32,28 @@ public class CustomInstrument implements Instrument
   //The one exception is the keyboard, which is included as a default component outside the list
   private Keyboard keyboard;
   
+  //In order to capture polyphony (simultaneous keyboard notes at once), need copies of
+  //  the instrument, each using a unique keyboard out patch
+  //This means we need to apply changes in the instrument across all copies; synced via a map
+  private HashMap<SynthComponent, SynthComponent[]> polyphonicClones;
+  
   //Unique feature outside tree data structure is that the leaves producing audio all
   //  patch to the Summer UGen (which adds the soundwaves together) for output
   private Summer toAudioOutput;
   
   public CustomInstrument()
   {
-    //Initialize the map, but there are no components yet to set up mappings
+    //Initialize the map, but there are no components yet to set up mappings (outdated, keep for debug code legacy)
     patchTree = new HashMap();
     root = null;
     
+    //Initialize data structures that will store the synth components (currently used)
     componentsList = new ArrayList();
     patchesList = new ArrayList();
     keyboard = new Keyboard();
+    
+    //Initialize the polyphonic clone data structure, which will interact with the keyboard
+    polyphonicClones = new HashMap();
     
     //Initialize the summer so that there is something that tries to play when ready
     toAudioOutput = new Summer();
@@ -144,6 +155,80 @@ public class CustomInstrument implements Instrument
     }
   }
   
+  //For polyphonic purposes, create a synth component's clones all at once when setting up
+  //  Each has an input parameter for the component
+  //  Each returns a boolean, which is false when there are no more synth component slots
+  public boolean addSynthComponent(SynthComponent sc) throws Exception
+  {
+    //Do not continue any further if out of synth components
+    if(componentsList.size() >= Render_CONSTANTS.MAX_SYNTH_COMPONENTS)
+    {
+      return false;
+    }
+    
+    //Append the component to the list
+    componentsList.add(sc);
+    
+    //Now produce the clones as an array and then map them all together
+    SynthComponent[] scClones = new SynthComponent[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
+    //First entry is the identity, which aligns the keyboard out patch indeces for polyphony
+    scClones[0] = sc;
+    for(int i = 1; i < scClones.length; i++)
+    {
+      //NOTE: Need to prepare additional cases if more SynthComponent subclasses are ever made!
+      if(sc instanceof EnvelopeGenerator)
+      {
+        scClones[i] = new EnvelopeGenerator();
+      }
+      if(sc instanceof Keyboard)
+      {
+        //The one exception to the rule... keyboards should be unique and external to this portion
+        throw new Exception("Cannot include a Keyboard or its subclass (" + sc.getClass() + ") in instrument");
+      }
+      else if(sc instanceof LFO)
+      {
+        scClones[i] = new LFO();
+      }
+      else if(sc instanceof Multiples)
+      {
+        scClones[i] = new Multiples();
+      }
+      else if(sc instanceof NoiseGenerator)
+      {
+        scClones[i] = new NoiseGenerator();
+      }
+      else if(sc instanceof Power)
+      {
+        scClones[i] = new Power();
+      }
+      else if(sc instanceof VCA)
+      {
+        scClones[i] = new VCA();
+      }
+      else if(sc instanceof VCF)
+      {
+        scClones[i] = new VCF();
+      }
+      else if(sc instanceof VCO)
+      {
+        scClones[i] = new VCO();
+      }
+      else
+      {
+        throw new Exception("No such subclass of SynthComponent: " + sc.getClass());
+      }
+      
+      //Set the unique name to be a numbered clone (just in case it appears in the GUI)
+      scClones[i].setUniqueName(sc.getUniqueName() + " [Clone #" + i + "]");
+    }
+    
+    //Set up the mapping for future use when syncing changes to the instrument
+    polyphonicClones.put(sc, scClones);
+    
+    return true;
+  }
+  
+  //=========================DEBUG FUNCTIONS BELOW============================//
   //Used to setup a simple preloaded patch, intended to make debugging quick
   public void setupDebugPatch()
   {
