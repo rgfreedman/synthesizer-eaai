@@ -56,6 +56,9 @@ public class PatchCable
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).unpatch(patchInSynComp.getPatchIn(patchInIndex));
+    }
+    if((patchInSynComp != null) && (patchInIndex >= 0))
+    {
       patchInSynComp.setCableIn(patchInIndex, null);
     }
     
@@ -83,6 +86,9 @@ public class PatchCable
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).unpatch(patchInSynComp.getPatchIn(patchInIndex));
+    }
+    if((patchOutSynComp != null) && (patchOutIndex >= 0))
+    {
       patchOutSynComp.setCableOut(patchOutIndex, null);
     }
     
