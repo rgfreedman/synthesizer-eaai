@@ -184,6 +184,12 @@ public abstract class SynthComponent
         }
         //First two values are center, width and height are equal for circle
         ellipse(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+        
+        //Also send the center values to the patch cable, if one exists that is plugged into this patch
+        if((patchInCable != null) && (patchInCable[i] != null))
+        {
+          patchInCable[i].setRenderIn(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
+        }
       }
     }
     
@@ -200,6 +206,12 @@ public abstract class SynthComponent
         }
         //First two values are center, width and height are equal for circle
         ellipse(xOffset + ((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+        
+        //Also send the center values to the patch cable, if one exists that is plugged into this patch
+        if((patchOutCable != null) && (patchOutCable[i] != null))
+        {
+          patchOutCable[i].setRenderOut(xOffset + ((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8), yOffset + (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)));
+        }
       }
     }
     

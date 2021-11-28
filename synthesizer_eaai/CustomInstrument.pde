@@ -71,12 +71,6 @@ public class CustomInstrument implements Instrument
   //Performs updates to the instrument (via updates to each component) in the draw iteration
   public void draw_update()
   {
-    //Need to compute global position of component in GUI
-    int xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
-    int yOffset = Render_CONSTANTS.UPPER_BORDER_HEIGHT;
-    int horizSlot = 0;
-    int vertSlot = 0;
-    
     //Allow each component to update
     for(int i = 0; i < componentsList.size(); i++)
     {
@@ -133,11 +127,20 @@ public class CustomInstrument implements Instrument
       }
     }
     
-    
     //The keyboard is standalone => call its render separately
     if(keyboard != null)
     {
       keyboard.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    }
+    
+    //Iterate over patches (they are rendered globally)
+    for(int i = 0; i < patchesList.size(); i++)
+    {
+      //Make sure the component exists first (just in case it is null)
+      if(patchesList.get(i) != null)
+      {
+        patchesList.get(i).render();
+      }
     }
   }
   
@@ -150,9 +153,9 @@ public class CustomInstrument implements Instrument
     //setupDebugPower();
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
-    setupDebugMultiples();
+    //setupDebugMultiples();
     //setupDebugVCA();
-    //setupDebugEG_ADSR();
+    setupDebugEG_ADSR();
     //setupDebugKeyboard();
     //setupDebugVCF();
     
@@ -169,9 +172,9 @@ public class CustomInstrument implements Instrument
     //drawDebugPower();
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
-    drawDebugMultiples();
+    //drawDebugMultiples();
     //drawDebugVCA();
-    //drawDebugEG_ADSR();
+    drawDebugEG_ADSR();
     //drawDebugKeyboard();
     //drawDebugVCF();
     
@@ -215,6 +218,16 @@ public class CustomInstrument implements Instrument
     {
       keyboard.draw_update();
       keyboard.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    }
+    
+    //Iterate over patches (they are rendered globally)
+    for(int i = 0; i < patches.length; i++)
+    {
+      //Make sure the component exists first (just in case it is null)
+      if(patches[i] != null)
+      {
+        patches[i].render();
+      }
     }
   }
 

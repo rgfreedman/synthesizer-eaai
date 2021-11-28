@@ -181,6 +181,12 @@ public class Keyboard extends SynthComponent
       }
       //First two values are center, width and height are equal for circle
       ellipse(xOffset + (Render_CONSTANTS.LEFT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS), Render_CONSTANTS.PATCH_DIAMETER, Render_CONSTANTS.PATCH_DIAMETER);
+      
+      //Also send the center values to the patch cable, if one exists that is plugged into this patch
+      if((patchOutCable != null) && (patchOutCable[Keyboard_CONSTANTS.PATCHOUT_KEY0] != null))
+      {
+        patchOutCable[Keyboard_CONSTANTS.PATCHOUT_KEY0].setRenderOut(xOffset + (Render_CONSTANTS.LEFT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS));
+      }
     }
     
     //Now render the keys on the keyboard, natural are tiled first with halftones on top

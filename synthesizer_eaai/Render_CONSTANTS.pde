@@ -60,6 +60,10 @@ public static class Render_CONSTANTS
   public static final int PATCH_PLUG_RADIUS = PATCH_PLUG_DIAMETER / 2;
   public static final int PATCH_CORD_WIDTH = min(PATCH_PLUG_RADIUS / 2, 5);
   
+  //Checked Processing Reference Manual => default stroke weight is 4 (need to undo setting PATCH_CORD_WIDTH)
+  //  Citation: https://processing.org/reference/strokeWeight_.html
+  public static final int DEFAULT_STROKE_WEIGHT = 4;
+  
   //Size of cursor for the slider-representation of a knob
   //NOTE: Ensure a minimum width since it could become 0
   public static final int KNOB_CURSOR_WIDTH = max(KNOB_WIDTH / 10, 5);
