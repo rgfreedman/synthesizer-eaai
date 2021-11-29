@@ -1,7 +1,7 @@
 /*PatchCable.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2021 November 28
 
 Class for a patch cable the joins components within a synthesized instrument.
 This component simply contains the information about the input and output patch,
@@ -31,7 +31,14 @@ public class PatchCable
   protected int patchOut_renderX = -1;
   protected int patchOut_renderY = -1;
   
-  //No Default constructor - Supply the patch information and then the patch sets itself up
+  //Default constructor - defaults to have nothing set (use setPatchIn and setPatchOut later)
+  public PatchCable()
+  {
+    this.setPatchIn(null, -1);
+    this.setPatchOut(null, -1);
+  }
+  
+  //Typical constructor - Supply the patch information and then the patch sets itself up
   public PatchCable(SynthComponent outSC, int outIndex, SynthComponent inSC, int inIndex)
   {
     //Simply use the mutator methods to set up these patches without worrying about errors
@@ -66,7 +73,10 @@ public class PatchCable
     patchInSynComp = inSC;
     patchInIndex = inIndex;
     //Also store the cable pointer in the synth component
-    patchInSynComp.setCableIn(patchInIndex, this);
+    if(patchInSynComp != null)
+    {
+      patchInSynComp.setCableIn(patchInIndex, this);
+    }
     
     //This means the rendering position for the new in patch is unknown
     patchIn_renderX = -1;
@@ -96,7 +106,10 @@ public class PatchCable
     patchOutSynComp = outSC;
     patchOutIndex = outIndex;
     //Also store the cable pointer in the synth component
-    patchOutSynComp.setCableOut(patchOutIndex, this);
+    if(patchOutSynComp != null)
+    {
+      patchOutSynComp.setCableOut(patchOutIndex, this);
+    }
     
     //This means the rendering position for the new out patch is unknown
     patchOut_renderX = -1;

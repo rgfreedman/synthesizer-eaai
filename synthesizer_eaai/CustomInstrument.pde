@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2021 November 28
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -35,7 +35,8 @@ public class CustomInstrument implements Instrument
   //In order to capture polyphony (simultaneous keyboard notes at once), need copies of
   //  the instrument, each using a unique keyboard out patch
   //This means we need to apply changes in the instrument across all copies; synced via a map
-  private HashMap<SynthComponent, SynthComponent[]> polyphonicClones;
+  private HashMap<SynthComponent, SynthComponent[]> polyphonicCompClones;
+  private HashMap<PatchCable, PatchCable[]> polyphonicPatchClones;
   
   //Unique feature outside tree data structure is that the leaves producing audio all
   //  patch to the Summer UGen (which adds the soundwaves together) for output
@@ -53,7 +54,8 @@ public class CustomInstrument implements Instrument
     keyboard = new Keyboard();
     
     //Initialize the polyphonic clone data structure, which will interact with the keyboard
-    polyphonicClones = new HashMap();
+    polyphonicCompClones = new HashMap();
+    polyphonicPatchClones = new HashMap();
     
     //Initialize the summer so that there is something that tries to play when ready
     toAudioOutput = new Summer();
@@ -172,8 +174,8 @@ public class CustomInstrument implements Instrument
     //Now produce the clones as an array and then map them all together
     SynthComponent[] scClones = new SynthComponent[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
     //First entry is the identity, which aligns the keyboard out patch indeces for polyphony
-    scClones[0] = sc;
-    for(int i = 1; i < scClones.length; i++)
+    scClones[Keyboard_CONSTANTS.PATCHOUT_KEY0] = sc;
+    for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY1; i < scClones.length; i++)
     {
       //NOTE: Need to prepare additional cases if more SynthComponent subclasses are ever made!
       if(sc instanceof EnvelopeGenerator)
@@ -223,8 +225,140 @@ public class CustomInstrument implements Instrument
     }
     
     //Set up the mapping for future use when syncing changes to the instrument
-    polyphonicClones.put(sc, scClones);
+    polyphonicCompClones.put(sc, scClones);
     
+    //By this point, the cloning was successful
+    return true;
+  }
+  
+  //For polyphonic purposes, create a patch cable's clones all at once when setting up
+  //  Each has an input parameter for the patch cable
+  //  Due to limitless patches, returns true only
+  public boolean addPatchCable(PatchCable pc)
+  {
+    //Append the component to the list
+    patchesList.add(pc);
+    
+    //Now produce the clones as an array and then map them all together
+    PatchCable[] pcClones = new PatchCable[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
+    //First entry is the identity, which aligns the keyboard out patch indeces for polyphony
+    pcClones[Keyboard_CONSTANTS.PATCHOUT_KEY0] = pc;
+    for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY1; i < pcClones.length; i++)
+    {
+      pcClones[i] = new PatchCable();
+    }
+    
+    //Set up the mapping for future use when syncing changes to the instrument
+    polyphonicPatchClones.put(pc, pcClones);
+    
+    //We will reach this point no matter what, but follow suit of cloning synth components
+    return true;
+  }
+  
+  //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
+  //Return false when the setting fails (non-existent component OR non-existent thing to change)
+  public boolean setKnob(int componentIndex, int knobIndex, float position)
+  {
+    //Cannot set a component if its index does not exist
+    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    {
+      return false;
+    }
+    
+    //Work with reference to the component because we will use it several times
+    SynthComponent sc = componentsList.get(componentIndex);
+    
+    //Cannot set the knob if it does not exist, the accessor would return null
+    if(sc.getKnob(knobIndex) == null)
+    {
+      return false;
+    }
+    
+    //Iterate over all the clones (first clone is the original sc) and set the knob value
+    for(SynthComponent scClone : polyphonicCompClones.get(sc))
+    {
+      scClone.getKnob(knobIndex).setCurrentPosition(position);
+    }
+    
+    //Knob settings complete---return true for success!
+    return true;
+  }
+  
+  //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
+  //Return false when the setting fails (non-existent component OR non-existent thing to change)
+  public boolean setPatchOut(int componentIndex, int patchoutIndex, PatchCable pc)
+  {
+    //Cannot set a component if its index does not exist
+    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    {
+      return false;
+    }
+    
+    //Work with reference to the component because we will use it several times
+    SynthComponent sc = componentsList.get(componentIndex);
+    
+    //Cannot set the patchOut if it does not exist, the accessor would return null
+    if(sc.getPatchOut(patchoutIndex) == null)
+    {
+      return false;
+    }
+    
+    //Also cannot plug into a patch if it already has another cable plugged in (already being plugged in itself is fine)
+    if((sc.getCableOut(patchoutIndex) != null) || (sc.getCableOut(patchoutIndex) != pc))
+    {
+      return false;
+    }
+    
+    //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
+    SynthComponent[] scClone = polyphonicCompClones.get(sc);
+    PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+    for(int i = 0; i < scClone.length; i++)
+    {
+      //The patch cable's setPatchOut method also stores itself in the synth component
+      pcClone[i].setPatchOut(scClone[i], patchoutIndex);
+    }
+    
+    //Patch-out settings complete---return true for success!
+    return true;
+  }
+  
+  //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
+  //Return false when the setting fails (non-existent component OR non-existent thing to change)
+  public boolean setPatchIn(int componentIndex, int patchinIndex, PatchCable pc)
+  {
+    //Cannot set a component if its index does not exist
+    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    {
+      return false;
+    }
+    
+    //Work with reference to the component because we will use it several times
+    SynthComponent sc = componentsList.get(componentIndex);
+    
+    //Cannot set the patchIn if it does not exist, the accessor would return null
+    if(sc.getPatchOut(patchinIndex) == null)
+    {
+      return false;
+    }
+    
+    //Also cannot plug into a patch if it already has another cable plugged in (already being plugged in itself is fine)
+    if((sc.getCableOut(patchinIndex) != null) || (sc.getCableOut(patchinIndex) != pc))
+    {
+      return false;
+    }
+    
+    //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
+    SynthComponent[] scClone = polyphonicCompClones.get(sc);
+    PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+    for(int i = 0; i < scClone.length; i++)
+    {
+      //The patch cable's setPatchIn method also stores itself in the synth component
+      pcClone[i].setPatchIn(scClone[i], patchinIndex);
+    }
+    
+    //Patch-in settings complete---return true for success!
     return true;
   }
   
