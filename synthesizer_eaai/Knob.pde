@@ -103,4 +103,21 @@ public class Knob
     fill(255, 0, 0);
     rect(xOffset + (int)(currentPosition * Render_CONSTANTS.KNOB_WIDTH) - (Render_CONSTANTS.KNOB_CURSOR_WIDTH / 2), yOffset - ((Render_CONSTANTS.KNOB_CURSOR_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KNOB_CURSOR_WIDTH, Render_CONSTANTS.KNOB_CURSOR_HEIGHT);
   }
+  
+  //Reverse engineering of the rendering process to identify if this knob has the focus
+  //  (it is at some pixel location)
+  //NOTE: The inputs x and y are relative to the top-left corner of this Knob
+  public boolean contains_point(int x, int y)
+  {
+    //Simply check if the rectangle for the slider or the rectangle for the cursor contains the point
+    if(Render_CONSTANTS.rect_contains_point(0, 0, Render_CONSTANTS.KNOB_WIDTH, Render_CONSTANTS.KNOB_HEIGHT, x, y) ||
+       Render_CONSTANTS.rect_contains_point((int)(currentPosition * Render_CONSTANTS.KNOB_WIDTH) - (Render_CONSTANTS.KNOB_CURSOR_WIDTH / 2), -1 * ((Render_CONSTANTS.KNOB_CURSOR_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KNOB_CURSOR_WIDTH, Render_CONSTANTS.KNOB_CURSOR_HEIGHT, x, y))
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
 }

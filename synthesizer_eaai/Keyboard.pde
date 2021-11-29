@@ -226,4 +226,30 @@ public class Keyboard extends SynthComponent
     halftoneOffset--; //No halftone key (enharmonic B# = C)
     rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
   }
+  
+  //Override the getElementAt command for SynthComponent superclass because the keyboard
+  //  is very different in design (show subset of patches and knobs, mostly keys) and 
+  //  should be part of all instruments (rather than as a possible component)
+  //Output format is a length-2 integer array: [element_type, index]
+  //NOTE: The output format will have some helpful magic numbers defined in Render_CONSTANTS
+  //NOTE: The inputs x and y are relative to the top-left corner of this SynthComponent
+  public int[] getElementAt(int x, int y)
+  {
+    //Setup the output array first, fill in just before returning (set to default, the "null")
+    int[] toReturn = new int[Render_CONSTANTS.SYNTHCOMPONENT_TOTAL_FOCUS];
+    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE;
+    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = -1;
+    
+    //Only check for the provided first patch out; others are not displayed
+    //The patch is just a circle
+    if(Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.LEFT_BORDER_WIDTH / 2, Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS), Render_CONSTANTS.PATCH_RADIUS, x, y))
+    {
+      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT;
+      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = Keyboard_CONSTANTS.PATCHOUT_KEY0;
+      return toReturn;
+    }
+    
+    //At this point, the point did not fit into any elements => return nothing
+    return toReturn;
+  }
 }

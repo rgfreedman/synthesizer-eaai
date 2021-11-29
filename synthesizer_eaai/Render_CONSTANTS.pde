@@ -85,4 +85,27 @@ public static class Render_CONSTANTS
   public static final int KEYBOARD_HALFTONE_HEIGHT = KEYBOARD_NATURAL_HEIGHT / 2;
   public static final int KEYBOARD_HALFTONE_HORIZ_OFFSET = KEYBOARD_NATURAL_WIDTH / 3;
   public static final int KEYBOARD_HALFTONE_VERT_OFFSET = 0;
+  
+  //Functions to check for containment of points within shapes, which is essential for 
+  //  finding the focus (what is clicked on in the application)
+  public static boolean rect_contains_point(int top_left_x, int top_left_y, int wdth, int hght, int point_x, int point_y)
+  {
+    return ((point_x >= top_left_x) && (point_x <= (top_left_x + wdth)) && (point_y >= top_left_y) && (point_y <= (top_left_y + hght)));
+  }
+  public static boolean circ_contains_point(int center_x, int center_y, int radius, int point_x, int point_y)
+  {
+    return radius >= (((center_x - point_x) * (center_x - point_x)) + ((center_y - point_y) * (center_y - point_y)));
+  }
+  
+  //The focus efforts in a SynthComponent object require a pair of element and index
+  //IDs for elements
+  public static final int SYNTHCOMPONENT_ELEMENT_NONE = -1;
+  public static final int SYNTHCOMPONENT_ELEMENT_PATCHIN = SYNTHCOMPONENT_ELEMENT_NONE + 1;
+  public static final int SYNTHCOMPONENT_ELEMENT_KNOB = SYNTHCOMPONENT_ELEMENT_PATCHIN + 1;
+  public static final int SYNTHCOMPONENT_ELEMENT_PATCHOUT = SYNTHCOMPONENT_ELEMENT_KNOB + 1;
+  public static final int SYNTHCOMPONENT_TOTAL_ELEMENT = SYNTHCOMPONENT_ELEMENT_PATCHOUT + 1;
+  //Actual indeces in the output format that define the focus
+  public static final int SYNTHCOMPONENT_FOCUS_ELEMENT = 0;
+  public static final int SYNTHCOMPONENT_FOCUS_INDEX = SYNTHCOMPONENT_FOCUS_ELEMENT + 1;
+  public static final int SYNTHCOMPONENT_TOTAL_FOCUS = SYNTHCOMPONENT_FOCUS_INDEX + 1;
 }

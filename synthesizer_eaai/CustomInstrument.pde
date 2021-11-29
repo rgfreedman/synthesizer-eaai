@@ -157,6 +157,50 @@ public class CustomInstrument implements Instrument
     }
   }
   
+  //Reverse engineering of the rendering process to identify the focus
+  //  (what component is at some pixel location)
+  public SynthComponent getSynthComponentAt(int x, int y)
+  {
+    //If the point is out-of-bounds of the application, immediately return null
+    if((x < 0) || (x >= Render_CONSTANTS.APP_WIDTH) || (y < 0) || (y >= Render_CONSTANTS.APP_HEIGHT))
+    {
+      return null;
+    }
+    
+    //Quick case: if the point is within the lower border, then the keyboard has focus
+    if(Render_CONSTANTS.rect_contains_point(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT, Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.LOWER_BORDER_HEIGHT, x, y))
+    {
+      return keyboard;
+    }
+    
+    //Quick case: if the point is within the right border, then the mixer for the speaker has focus
+    //COMING SOON!
+    
+    //Longer case: iterate over the components in the list and identify if any of them have focus
+    for(int r = 0; r < Render_CONSTANTS.TILE_VERT_COUNT; r++)
+    {
+      for(int c = 0; c < Render_CONSTANTS.TILE_HORIZ_COUNT; c++)
+      {
+        if(Render_CONSTANTS.rect_contains_point(Render_CONSTANTS.LEFT_BORDER_WIDTH + (c * Render_CONSTANTS.COMPONENT_WIDTH), Render_CONSTANTS.UPPER_BORDER_HEIGHT + (r * Render_CONSTANTS.COMPONENT_HEIGHT), Render_CONSTANTS.COMPONENT_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT, x, y))
+        {
+          //If that component actually does not exist, then make sure null is returned
+          if(((r * Render_CONSTANTS.TILE_HORIZ_COUNT) + c) >= componentsList.size())
+          {
+            return null;
+          }
+          else
+          {
+            //When the component is not defined, but the list has an entry, then conveniently returns null
+            return componentsList.get((r * Render_CONSTANTS.TILE_HORIZ_COUNT) + c);
+          }
+        }
+      }
+    }
+    
+    //If nothing matched, then in some unused region or an unused border
+    return null;
+  }
+  
   //For polyphonic purposes, create a synth component's clones all at once when setting up
   //  Each has an input parameter for the component
   //  Each returns a boolean, which is false when there are no more synth component slots
