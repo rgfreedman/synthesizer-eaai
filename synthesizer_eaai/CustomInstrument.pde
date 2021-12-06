@@ -603,6 +603,7 @@ public class CustomInstrument implements Instrument
     //drawDebugVCF();
     //drawDebugList();
     drawDebugPolyphonic();
+    drawDebugReverseFocus(); //Unlike other debug tests, this one lacks a setup and needs to use one from above!
     
     //Can now test rendering, no matter what components are shown (copied here from 
     //  render(...) above due to change from components to componentsList data structure
@@ -1087,5 +1088,51 @@ public class CustomInstrument implements Instrument
     }
     
     draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
+  }
+  
+  //Simply prints to what a mouse click corresponds on the screen, testing for the GUI
+  public void drawDebugReverseFocus()
+  {
+    //Check if a left mouse click occurred, and print information about the click if so
+    if(mousePressed && (mouseButton == LEFT))
+    {
+      print("Mouse clicked at (" + mouseX + ", " + mouseY + "): ");
+      SynthComponent focus = getSynthComponentAt(mouseX, mouseY);
+      if(focus != null)
+      {
+        println("synth component in the click = " + focus);
+        //Need to figure out the coordinates for focus's placement
+        int compIndex = findSynthComponentIndex(focus);
+        int topLeftX = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH) : (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int topLeftY = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT) : (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
+        print("\tSpecifically clicked on element: ");
+        if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
+        {
+          print("none ");
+        }
+        else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB)
+        {
+          print("knob ");
+        }
+        else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+        {
+          print("in-patch ");
+        }
+        else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+        {
+          print("out-patch ");
+        }
+        else
+        {
+          print("uh-oh... some junk data snuck in that cannot be interpreted ");
+        }
+        println("at index " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+      }
+      else
+      {
+        println("no synth component in the click = " + focus); //focus should be null here
+      }
+    }
   }
 }

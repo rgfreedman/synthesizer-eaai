@@ -1,7 +1,7 @@
 /*Render_CONSTANTS.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2021 December 5
 
 Class for constants that affect rendering components on the screen; edit the assigned
 values to alter how things display on the screen.
@@ -94,7 +94,7 @@ public static class Render_CONSTANTS
   }
   public static boolean circ_contains_point(int center_x, int center_y, int radius, int point_x, int point_y)
   {
-    return radius >= (((center_x - point_x) * (center_x - point_x)) + ((center_y - point_y) * (center_y - point_y)));
+    return (radius * radius) >= (((center_x - point_x) * (center_x - point_x)) + ((center_y - point_y) * (center_y - point_y)));
   }
   
   //The focus efforts in a SynthComponent object require a pair of element and index
