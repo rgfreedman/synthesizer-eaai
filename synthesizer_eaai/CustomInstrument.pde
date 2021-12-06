@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 28
+Last Updated: 2021 December 5
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -14,6 +14,16 @@ import java.util.HashMap;
 import java.util.ArrayList;
 
 import java.lang.Exception; //Needed for a special case that should only scream at the code developers for not keeping features up-to-date, not at anyone using the code as-is
+
+//Processing only allows static content in a static class (rather than mixing)
+//  This contains the static constants for the CustomInstrument class below
+public static class CustomInstrument_CONSTANTS
+{
+  //The keyboard is not part of the list of components, and thus has its own offset index
+  public static final int KEYBOARD_INDEX = -1;
+  //This means checking for a bad component is not as simple as < 0, making it the next offset index
+  public static final int NO_SUCH_INDEX = KEYBOARD_INDEX - 1;
+}
 
 public class CustomInstrument implements Instrument
 {
@@ -90,7 +100,14 @@ public class CustomInstrument implements Instrument
       //Make sure the component exists first (just in case it is null)
       if(componentsList.get(i) != null)
       {
-        componentsList.get(i).draw_update();
+        //componentsList.get(i).draw_update(); //Commented out since duplicated in loop below
+        
+        //Do not forget to let all of its clones run draw_update as well!
+        //NOTE: The first clone is the same as the one in componentsList (so comment out above to avoid duplicate execution)
+        for(SynthComponent cloneSC : polyphonicCompClones.get(componentsList.get(i)))
+        {
+          cloneSC.draw_update();
+        }
       }
     }
     
@@ -201,6 +218,29 @@ public class CustomInstrument implements Instrument
     return null;
   }
   
+  //Some methods need the index of a SynthComponent rather than the componet itself
+  //NOTE: Finds the exact match of sc (via == for pointer, not .equals for features)
+  //NOTE: Returns -2 when no match was found, and the keyboard via -1
+  public int findSynthComponentIndex(SynthComponent sc)
+  {
+    //Special case of the keyboard (not in componentsList)
+    if(keyboard == sc)
+    {
+      return CustomInstrument_CONSTANTS.KEYBOARD_INDEX;
+    }
+    
+    for(int i = 0; i < componentsList.size(); i++)
+    {
+      if(componentsList.get(i) == sc)
+      {
+        return i;
+      }
+    }
+    
+    //Failed to find a match at this point...
+    return CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+  }
+  
   //For polyphonic purposes, create a synth component's clones all at once when setting up
   //  Each has an input parameter for the component
   //  Each returns a boolean, which is false when there are no more synth component slots
@@ -226,7 +266,7 @@ public class CustomInstrument implements Instrument
       {
         scClones[i] = new EnvelopeGenerator();
       }
-      if(sc instanceof Keyboard)
+      else if(sc instanceof Keyboard)
       {
         //The one exception to the rule... keyboards should be unique and external to this portion
         throw new Exception("Cannot include a Keyboard or its subclass (" + sc.getClass() + ") in instrument");
@@ -295,6 +335,16 @@ public class CustomInstrument implements Instrument
     //Set up the mapping for future use when syncing changes to the instrument
     polyphonicPatchClones.put(pc, pcClones);
     
+    //If the provided patch cable already set its in-patch or out-patch, then mirror across the clones
+    if(pc.getPatchInComponent() != null)
+    {
+      setPatchIn(findSynthComponentIndex(pc.getPatchInComponent()), pc.getPatchInIndex(), pc);
+    }
+    if(pc.getPatchOutComponent() != null)
+    {
+      setPatchOut(findSynthComponentIndex(pc.getPatchOutComponent()), pc.getPatchOutIndex(), pc);
+    }
+    
     //We will reach this point no matter what, but follow suit of cloning synth components
     return true;
   }
@@ -303,9 +353,13 @@ public class CustomInstrument implements Instrument
   //Return false when the setting fails (non-existent component OR non-existent thing to change)
   public boolean setKnob(int componentIndex, int knobIndex, float position)
   {
-    //Cannot set a component if its index does not exist
-    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    //Cannot set a component if its index does not exist (no knobs on keyboard)
+    if((componentIndex < 0) || (componentIndex >= componentsList.size()))
     {
+      if(DEBUG_INTERFACE_KNOB)
+      {
+        println("[setKnob] componentIndex " + componentIndex + " is out of bounds (componentsList size " + componentsList.size() + ") => failed to set knob");
+      }
       return false;
     }
     
@@ -315,6 +369,10 @@ public class CustomInstrument implements Instrument
     //Cannot set the knob if it does not exist, the accessor would return null
     if(sc.getKnob(knobIndex) == null)
     {
+      if(DEBUG_INTERFACE_KNOB)
+      {
+        println("[setKnob] knobIndex " + knobIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to set knob");
+      }
       return false;
     }
     
@@ -322,6 +380,11 @@ public class CustomInstrument implements Instrument
     for(SynthComponent scClone : polyphonicCompClones.get(sc))
     {
       scClone.getKnob(knobIndex).setCurrentPosition(position);
+      
+      if(DEBUG_INTERFACE_KNOB)
+      {
+        println("[setKnob] knobIndex " + knobIndex + " on component clone " + scClone + " is set to position " + scClone.getKnob(knobIndex).getCurrentPosition());
+      }
     }
     
     //Knob settings complete---return true for success!
@@ -333,34 +396,82 @@ public class CustomInstrument implements Instrument
   public boolean setPatchOut(int componentIndex, int patchoutIndex, PatchCable pc)
   {
     //Cannot set a component if its index does not exist
-    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    if((componentIndex <= CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (componentIndex >= componentsList.size()))
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchOut] componentIndex " + componentIndex + " is out of bounds (componentsList size " + componentsList.size() + ") => failed to patch out");
+      }
       return false;
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = componentsList.get(componentIndex);
+    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : componentsList.get(componentIndex);
     
     //Cannot set the patchOut if it does not exist, the accessor would return null
     if(sc.getPatchOut(patchoutIndex) == null)
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchOut] patchoutIndex " + patchoutIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to patch out");
+      }
       return false;
     }
     
     //Also cannot plug into a patch if it already has another cable plugged in (already being plugged in itself is fine)
-    if((sc.getCableOut(patchoutIndex) != null) || (sc.getCableOut(patchoutIndex) != pc))
+    if((sc.getCableOut(patchoutIndex) != null) && (sc.getCableOut(patchoutIndex) != pc))
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchOut] patchoutIndex " + patchoutIndex + " is already used for componentIndex " + componentIndex + " => failed to patch out");
+      }
       return false;
     }
     
-    //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
-    SynthComponent[] scClone = polyphonicCompClones.get(sc);
-    PatchCable[] pcClone = polyphonicPatchClones.get(pc);
-    
-    for(int i = 0; i < scClone.length; i++)
+    //Patching in keyboard case
+    if(sc == keyboard)
     {
-      //The patch cable's setPatchOut method also stores itself in the synth component
-      pcClone[i].setPatchOut(scClone[i], patchoutIndex);
+      //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
+      PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+      for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[setPatchOut] patchoutIndex " + i + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchOut method also stores itself in the synth component
+        pcClone[i].setPatchOut(sc, i);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful patch out? pcClone[" + i + "] plugs into " + pcClone[i].getPatchOutComponent() + ", index " + pcClone[i].getPatchOutIndex());
+        }
+      }
+    }
+    //For non-keyboard
+    else
+    {
+      //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
+      SynthComponent[] scClone = polyphonicCompClones.get(sc);
+      PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+      for(int i = 0; i < scClone.length; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[setPatchOut] patchoutIndex " + patchoutIndex + " of component clone " + i + " (" + scClone[i] + ") will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchOut method also stores itself in the synth component
+        pcClone[i].setPatchOut(scClone[i], patchoutIndex);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful patch out? pcClone[" + i + "] plugs into " + pcClone[i].getPatchOutComponent() + ", index " + pcClone[i].getPatchOutIndex());
+        }
+      }
     }
     
     //Patch-out settings complete---return true for success!
@@ -372,34 +483,82 @@ public class CustomInstrument implements Instrument
   public boolean setPatchIn(int componentIndex, int patchinIndex, PatchCable pc)
   {
     //Cannot set a component if its index does not exist
-    if((componentIndex < componentsList.size()) || (componentIndex >= componentsList.size()))
+    if((componentIndex <= CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (componentIndex >= componentsList.size()))
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchIn] componentIndex " + componentIndex + " is out of bounds (componentsList size " + componentsList.size() + ") => failed to patch in");
+      }
       return false;
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = componentsList.get(componentIndex);
+    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : componentsList.get(componentIndex);
     
     //Cannot set the patchIn if it does not exist, the accessor would return null
-    if(sc.getPatchOut(patchinIndex) == null)
+    if(sc.getPatchIn(patchinIndex) == null)
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchIn] patchinIndex " + patchinIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to patch in");
+      }
       return false;
     }
     
     //Also cannot plug into a patch if it already has another cable plugged in (already being plugged in itself is fine)
-    if((sc.getCableOut(patchinIndex) != null) || (sc.getCableOut(patchinIndex) != pc))
+    if((sc.getCableIn(patchinIndex) != null) && (sc.getCableIn(patchinIndex) != pc))
     {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[setPatchIn] patchinIndex " + patchinIndex + " is already used for componentIndex " + componentIndex + " => failed to patch in");
+      }
       return false;
     }
     
-    //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
-    SynthComponent[] scClone = polyphonicCompClones.get(sc);
-    PatchCable[] pcClone = polyphonicPatchClones.get(pc);
-    
-    for(int i = 0; i < scClone.length; i++)
+    //Patching in keyboard case---awkwardly, there are no patch-ins on the keyboard
+    if(sc == keyboard)
     {
-      //The patch cable's setPatchIn method also stores itself in the synth component
-      pcClone[i].setPatchIn(scClone[i], patchinIndex);
+      //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
+      PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+      for(int i = 0; i < Keyboard_CONSTANTS.TOTAL_PATCHIN; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[setPatchIn] patchinIndex " + i + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchIn method also stores itself in the synth component
+        pcClone[i].setPatchIn(sc, i);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful patch in? pcClone[" + i + "] plugs into " + pcClone[i].getPatchInComponent() + ", index " + pcClone[i].getPatchInIndex());
+        }
+      }
+    }
+    //For non-keyboard
+    else
+    {
+      //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
+      SynthComponent[] scClone = polyphonicCompClones.get(sc);
+      PatchCable[] pcClone = polyphonicPatchClones.get(pc);
+    
+      for(int i = 0; i < scClone.length; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[setPatchIn] patchinIndex " + patchinIndex + " of component clone " + i + " (" + scClone[i] + ") will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchIn method also stores itself in the synth component
+        pcClone[i].setPatchIn(scClone[i], patchinIndex);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful patch in? pcClone[" + i + "] plugs into " + pcClone[i].getPatchInComponent() + ", index " + pcClone[i].getPatchInIndex());
+        }
+      }
     }
     
     //Patch-in settings complete---return true for success!
@@ -418,9 +577,11 @@ public class CustomInstrument implements Instrument
     //setupDebugPatchCable();
     //setupDebugMultiples();
     //setupDebugVCA();
-    setupDebugEG_ADSR();
+    //setupDebugEG_ADSR();
     //setupDebugKeyboard();
     //setupDebugVCF();
+    //setupDebugList();
+    setupDebugPolyphonic();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -437,9 +598,11 @@ public class CustomInstrument implements Instrument
     //drawDebugPatchCable();
     //drawDebugMultiples();
     //drawDebugVCA();
-    drawDebugEG_ADSR();
+    //drawDebugEG_ADSR();
     //drawDebugKeyboard();
     //drawDebugVCF();
+    //drawDebugList();
+    drawDebugPolyphonic();
     
     //Can now test rendering, no matter what components are shown (copied here from 
     //  render(...) above due to change from components to componentsList data structure
@@ -449,30 +612,33 @@ public class CustomInstrument implements Instrument
     int horizSlot = 0;
     int vertSlot = 0;
     
-    //Allow each component (root should be redundant) to update
-    for(int i = 0; i < components.length; i++)
+    if(components != null)
     {
-      components[i].draw_update();
-      components[i].render(xOffset, yOffset);
+      //Allow each component (root should be redundant) to update
+      for(int i = 0; i < components.length; i++)
+      {
+        components[i].draw_update();
+        components[i].render(xOffset, yOffset);
       
-      //Shift offsets based on tiled components
-      horizSlot++;
-      if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
-      {
-        horizSlot = 0;
-        vertSlot++;
-        xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
-        yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
-        
-        //If the vertical offset is too great, then abandon generating more components
-        if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
+        //Shift offsets based on tiled components
+        horizSlot++;
+        if(horizSlot >= Render_CONSTANTS.TILE_HORIZ_COUNT)
         {
-          break;
+          horizSlot = 0;
+          vertSlot++;
+          xOffset = Render_CONSTANTS.LEFT_BORDER_WIDTH;
+          yOffset += Render_CONSTANTS.COMPONENT_HEIGHT;
+        
+          //If the vertical offset is too great, then abandon generating more components
+          if(vertSlot >= Render_CONSTANTS.TILE_VERT_COUNT)
+          {
+            break;
+          }
         }
-      }
-      else
-      {
-        xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
+        else
+        {
+          xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
+        }
       }
     }
     
@@ -484,12 +650,15 @@ public class CustomInstrument implements Instrument
     }
     
     //Iterate over patches (they are rendered globally)
-    for(int i = 0; i < patches.length; i++)
+    if(patches != null)
     {
-      //Make sure the component exists first (just in case it is null)
-      if(patches[i] != null)
+      for(int i = 0; i < patches.length; i++)
       {
-        patches[i].render();
+        //Make sure the component exists first (just in case it is null)
+        if(patches[i] != null)
+        {
+          patches[i].render();
+        }
       }
     }
   }
@@ -795,5 +964,128 @@ public class CustomInstrument implements Instrument
     root.getKnob(VCF_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
     root.getKnob(VCF_CONSTANTS.KNOB_PASS).setCurrentPosition((float)mouseX / (float)width);
     draw_update();
+  }
+  
+  /*--For debugging of componentsList (new format setup, with additional fuctions that use
+      these data structures, setup and draw functions that specifically test them--*/
+  //Recreates the EG (envelope generator) debug test above, but now with polyphonic support
+  private void setupDebugList()
+  {
+    try
+    {
+      addSynthComponent(new Power()); //Pseudo-keyboard, will flip like a switch instead of knob
+      addSynthComponent(new VCO());
+      addSynthComponent(new Multiples()); //Will copy the power to use for frequency and gate
+      addSynthComponent(new EnvelopeGenerator());
+    }
+    catch(Exception e)
+    {
+      System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugList");
+    }
+    addPatchCable(new PatchCable(componentsList.get(0), Power_CONSTANTS.PATCHOUT_POWER, componentsList.get(2), Multiples_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(2), Multiples_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), Multiples_CONSTANTS.PATCHOUT_COPY1, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(1), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
+    
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    componentsList.get(3).getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    println("Setting knobs results: "
+      + "\n\t" + setKnob(1, VCO_CONSTANTS.KNOB_FREQ, 0.0) //; //Only Power sets the frequency
+      + "\n\t" + setKnob(1, VCO_CONSTANTS.KNOB_AMP, 1.0) //;
+      + "\n\t" + setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP, 0.0) //;
+      + "\n\t" + setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP, 0.0) //;
+      + "\n\t" + setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP, 1.0) //;
+      + "\n\t" + setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN, 0.5) //;
+      + "\n\t" + setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_DECAY, 0.333333)); //Since [0,3], this should be about 1 second
+  }
+  private void drawDebugList()
+  {
+    //Set the attack and release based on the mouse position
+    setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_ATTACK, (float)mouseX / (float)width);
+    setKnob(3, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, (float)mouseY / (float)height);
+    //Use the square brackets to set the power knob, acting more like a switch flip
+    if(key == '[')
+    {
+      setKnob(0, Power_CONSTANTS.KNOB_POWER, (float)440 / (float)componentsList.get(0).getKnob(Power_CONSTANTS.KNOB_POWER).getMaximumValue());
+      System.out.println("Turn on the power!");
+    }
+    else if(key == ']')
+    {
+      setKnob(0, Power_CONSTANTS.KNOB_POWER, 0.0);
+      System.out.println("Turn off the power!");
+    }
+    draw_update();
+  }
+  
+  /*--For debugging of polyphonic setup--*/
+  //Recreates the Keyboard debug test above, but now with polyphonic support via the 
+  //  keyboard object (not one we insert into the instrument)
+  public void setupDebugPolyphonic()
+  {
+    try
+    {
+      addSynthComponent(new Multiples());
+      addSynthComponent(new EnvelopeGenerator());
+      addSynthComponent(new VCO());
+    }
+    catch(Exception e)
+    {
+      System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugPolyphonic");
+    }
+    
+    //Simple patch to make an enveloped square wave play for the key
+    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
+      
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
+    for(SynthComponent eg : polyphonicCompClones.get(componentsList.get(1)))
+    {
+      eg.getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    }
+      
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    setKnob(2, VCO_CONSTANTS.KNOB_FREQ, 0.0); //Only Keyboard sets the frequency
+    setKnob(2, VCO_CONSTANTS.KNOB_AMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN, 0.5);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_DECAY, 0.333333); //Since [0,3], this should be about 1 second
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ATTACK, 0.16667); //Since [0,3], this should be about 0.5 seconds
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
+    
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  public void drawDebugPolyphonic()
+  {
+    //To avoid needing to integrate the test with the keyPress and keyRelease listeners,
+    //  simply assume the lowercase turns a note on and uppercase turns it off (use the
+    //  lowercase character for the sake of binding)
+    if(Character.isLowerCase(key))
+    {
+      int assignedIndex = keyboard.set_key(key, Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz());
+      if(assignedIndex >= 0)
+      {
+        System.out.println("Playing key " + assignedIndex + " bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    else if(Character.isUpperCase(key))
+    {
+      boolean unassignedIndex = keyboard.unset_key(Character.toLowerCase(key));
+      if(unassignedIndex)
+      {
+        System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    
+    draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
   }
 }

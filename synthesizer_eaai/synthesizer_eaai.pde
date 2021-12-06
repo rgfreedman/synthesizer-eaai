@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2021 December 5
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -21,9 +21,14 @@ private Summer allInstruments_toOut;
 
 //The available instruments (independent synthesizer setups), maintained in a list
 private ArrayList<CustomInstrument> instruments;
+private int currentInstrument = -1;
 
 //Constant used to toggle debug modes
+//NOTE: "Dead code" warnings below when checking for multiple debug flags are expected because of lazy Boolean evaluation
 public final boolean DEBUG_SYSTEM = true; //For general procedural stuff, like control flow
+public final boolean DEBUG_INTERFACE_KNOB = false; //For testing interfacing (defined below) with the knob
+public final boolean DEBUG_INTERFACE_PATCH = false; //For testing interfacing (defined below) with the patches
+public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH; //For testing interfacing features (GUI, set values via I/O-related function calls)
 
 void setup()
 {
@@ -39,6 +44,7 @@ void setup()
   
   //Initialize the list of instruments, which begins empty (until instruments are added)
   instruments = new ArrayList();
+  currentInstrument = -1;
   
   //The global Summer is always patched to the audio output for our setup
   //Instead of patching directly with the output, patch with the global Summer instead!
@@ -50,7 +56,7 @@ void setup()
   prepareExitHandler();
   
   //For easy access to a testbed, preload a special custom instrument when debugging
-  if(DEBUG_SYSTEM)
+  if(DEBUG_SYSTEM || DEBUG_INTERFACE)
   {
     setupDebugInstrument();
   }
@@ -63,9 +69,15 @@ void draw()
   background(200, 200, 200);
   
   //For easy access to a testbed, do things with a special custom instrument when debugging
-  if(DEBUG_SYSTEM)
+  if(DEBUG_SYSTEM || DEBUG_INTERFACE)
   {
     drawDebugInstrument();
+  }
+  
+  //Draw on screen the instrument that is currently selected
+  if((currentInstrument >= 0) && (currentInstrument < instruments.size()))
+  {
+    instruments.get(currentInstrument).render();
   }
 }
 
@@ -99,10 +111,12 @@ private void setupDebugInstrument()
   debugCustomInstrument = new CustomInstrument();
   debugCustomInstrument.setupDebugPatch();
   instruments.add(debugCustomInstrument);
+  currentInstrument = 0; //Force the instrument on screen to be the debug one
 }
 
 //Used to perform draw-level (looped) interactions with the preloaded test instrument
 private void drawDebugInstrument()
 {
+  currentInstrument = 0; //Force the instrument on screen to be the debug one
   debugCustomInstrument.drawDebugPatch();
 }
