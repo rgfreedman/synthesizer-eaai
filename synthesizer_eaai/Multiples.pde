@@ -1,7 +1,7 @@
 /*Multiples.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2021 December 29
 
 Class for a multiples component within a synthesized instrument.
 This component simply copies a wave input to allow multiple copies of it as outputs.
