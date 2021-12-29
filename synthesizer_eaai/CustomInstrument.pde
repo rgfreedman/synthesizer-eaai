@@ -275,9 +275,13 @@ public class CustomInstrument implements Instrument
       {
         scClones[i] = new LFO();
       }
-      else if(sc instanceof Multiples)
+      else if(sc instanceof Multiples1to8)
       {
-        scClones[i] = new Multiples();
+        scClones[i] = new Multiples1to8();
+      }
+      else if(sc instanceof Multiples2to4)
+      {
+        scClones[i] = new Multiples2to4();
       }
       else if(sc instanceof NoiseGenerator)
       {
@@ -575,13 +579,14 @@ public class CustomInstrument implements Instrument
     //setupDebugPower();
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
-    //setupDebugMultiples();
+    //setupDebugMultiples1to8();
+    setupDebugMultiples2to4();
     //setupDebugVCA();
     //setupDebugEG_ADSR();
     //setupDebugKeyboard();
     //setupDebugVCF();
     //setupDebugList();
-    setupDebugPolyphonic();
+    //setupDebugPolyphonic();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -596,13 +601,14 @@ public class CustomInstrument implements Instrument
     //drawDebugPower();
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
-    //drawDebugMultiples();
+    //drawDebugMultiples1to8();
+    drawDebugMultiples2to4();
     //drawDebugVCA();
     //drawDebugEG_ADSR();
     //drawDebugKeyboard();
     //drawDebugVCF();
     //drawDebugList();
-    drawDebugPolyphonic();
+    //drawDebugPolyphonic();
     drawDebugReverseFocus(); //Unlike other debug tests, this one lacks a setup and needs to use one from above!
     
     //Can now test rendering, no matter what components are shown (copied here from 
@@ -618,8 +624,11 @@ public class CustomInstrument implements Instrument
       //Allow each component (root should be redundant) to update
       for(int i = 0; i < components.length; i++)
       {
-        components[i].draw_update();
-        components[i].render(xOffset, yOffset);
+        if(components[i] != null)
+        {
+          components[i].draw_update();
+          components[i].render(xOffset, yOffset);
+        }
       
         //Shift offsets based on tiled components
         horizSlot++;
@@ -764,22 +773,22 @@ public class CustomInstrument implements Instrument
     draw_update();
   }
   
-  private void setupDebugMultiples()
+  private void setupDebugMultiples1to8()
   {
     //For test purposes, patch the LFO to three different oscillators for a synced chord
     //  with dynamic rate of tremolo
     root = new LFO();
     components = new SynthComponent[5];
     components[0] = root;
-    components[1] = new Multiples();
+    components[1] = new Multiples1to8();
     components[2] = new VCO();
     components[3] = new VCO();
     components[4] = new VCO();
     patches = new PatchCable[4];
-    patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
-    patches[1] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY0, components[2], VCO_CONSTANTS.PATCHIN_AMP);
-    patches[2] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], VCO_CONSTANTS.PATCHIN_AMP);
-    patches[3] = new PatchCable(components[1], Multiples_CONSTANTS.PATCHOUT_COPY2, components[4], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL);
+    patches[1] = new PatchCable(components[1], Multiples1to8_CONSTANTS.PATCHOUT_COPY0, components[2], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[2] = new PatchCable(components[1], Multiples1to8_CONSTANTS.PATCHOUT_COPY1, components[3], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[3] = new PatchCable(components[1], Multiples1to8_CONSTANTS.PATCHOUT_COPY2, components[4], VCO_CONSTANTS.PATCHIN_AMP);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
     components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
     components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
@@ -794,9 +803,61 @@ public class CustomInstrument implements Instrument
     //Force the LFO to have max amplitude for maximum tremolo
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
   }
-  private void drawDebugMultiples()
+  private void drawDebugMultiples1to8()
   {
     root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    draw_update();
+  }
+  
+  private void setupDebugMultiples2to4()
+  {
+    //For test purposes, patch the LFO to three different oscillators for a synced chord
+    //  with dynamic rate of tremolo; do this with two different LFOs
+    root = new LFO();
+    components = new SynthComponent[9];
+    components[0] = root;
+    components[1] = new Multiples2to4();
+    components[2] = new VCO();
+    components[3] = new VCO();
+    components[4] = new VCO();
+    components[5] = new LFO();
+    components[6] = new VCO();
+    components[7] = new VCO();
+    components[8] = new VCO();
+    patches = new PatchCable[8];
+    patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL0);
+    patches[1] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY00, components[2], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[2] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY01, components[3], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[3] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY02, components[4], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[4] = new PatchCable(components[5], LFO_CONSTANTS.PATCHOUT_SQUARE, components[1], Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL1);
+    patches[5] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY10, components[6], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[6] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY11, components[7], VCO_CONSTANTS.PATCHIN_AMP);
+    patches[7] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY12, components[8], VCO_CONSTANTS.PATCHIN_AMP);
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[6].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
+    components[7].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
+    components[8].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
+    //Set the frequency knobs of the VCOs to be constant, forcing a harmonic chord
+    components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)440 / (float)components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),5)) / (float)components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),9)) / (float)components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[6].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)220 / (float)components[6].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[7].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(220 * pow(pow(2,1.0/12.0),5)) / (float)components[7].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    components[8].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(220 * pow(pow(2,1.0/12.0),9)) / (float)components[8].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+    
+    //Force the LFO to have max amplitude for maximum tremolo
+    root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+    components[5].getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
+  }
+  private void drawDebugMultiples2to4()
+  {
+    root.getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseY / (float)height);
+    components[5].getKnob(LFO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)mouseX / (float)width);
     draw_update();
   }
   
@@ -835,13 +896,13 @@ public class CustomInstrument implements Instrument
     components = new SynthComponent[4];
     components[0] = root;
     components[1] = new VCO();
-    components[2] = new Multiples(); //Will copy the power to use for frequency and gate
+    components[2] = new Multiples1to8(); //Will copy the power to use for frequency and gate
     components[3] = new EnvelopeGenerator();
     patches = new PatchCable[4];
-    patches[0] = new PatchCable(components[0], Power_CONSTANTS.PATCHOUT_POWER, components[2], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
-    patches[1] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY0, components[1], VCO_CONSTANTS.PATCHIN_FREQ);
+    patches[0] = new PatchCable(components[0], Power_CONSTANTS.PATCHOUT_POWER, components[2], Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL);
+    patches[1] = new PatchCable(components[2], Multiples1to8_CONSTANTS.PATCHOUT_COPY0, components[1], VCO_CONSTANTS.PATCHIN_FREQ);
     //patches[2] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], EnvelopeGenerator_CONSTANTS.GATE_PLAYNOTE);
-    patches[2] = new PatchCable(components[2], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
+    patches[2] = new PatchCable(components[2], Multiples1to8_CONSTANTS.PATCHOUT_COPY1, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
     patches[3] = new PatchCable(components[1], VCO_CONSTANTS.PATCHOUT_SQUARE, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
     
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
@@ -886,13 +947,13 @@ public class CustomInstrument implements Instrument
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
     {
       //Instantiate the trio of components that go with a single key
-      components[1 + (3 * i)] = new Multiples();
+      components[1 + (3 * i)] = new Multiples1to8();
       components[2 + (3 * i)] = new EnvelopeGenerator();
       components[3 + (3 * i)] = new VCO();
       //Simple patch to make an enveloped square wave play for the key
-      patches[4 * i] = new PatchCable(components[0], i, components[1 + (3 * i)], Multiples_CONSTANTS.PATCHIN_ORIGINAL);
-      patches[1 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples_CONSTANTS.PATCHOUT_COPY0, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
-      patches[2 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples_CONSTANTS.PATCHOUT_COPY1, components[3 + (3 * i)], VCO_CONSTANTS.PATCHIN_FREQ);
+      patches[4 * i] = new PatchCable(components[0], i, components[1 + (3 * i)], Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL);
+      patches[1 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples1to8_CONSTANTS.PATCHOUT_COPY0, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_GATE);
+      patches[2 + (4 * i)] = new PatchCable(components[1 + (3 * i)], Multiples1to8_CONSTANTS.PATCHOUT_COPY1, components[3 + (3 * i)], VCO_CONSTANTS.PATCHIN_FREQ);
       patches[3 + (4 * i)] = new PatchCable(components[3 + (3 * i)], VCO_CONSTANTS.PATCHOUT_SQUARE, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
       
       //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
@@ -976,16 +1037,16 @@ public class CustomInstrument implements Instrument
     {
       addSynthComponent(new Power()); //Pseudo-keyboard, will flip like a switch instead of knob
       addSynthComponent(new VCO());
-      addSynthComponent(new Multiples()); //Will copy the power to use for frequency and gate
+      addSynthComponent(new Multiples1to8()); //Will copy the power to use for frequency and gate
       addSynthComponent(new EnvelopeGenerator());
     }
     catch(Exception e)
     {
       System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugList");
     }
-    addPatchCable(new PatchCable(componentsList.get(0), Power_CONSTANTS.PATCHOUT_POWER, componentsList.get(2), Multiples_CONSTANTS.PATCHIN_ORIGINAL));
-    addPatchCable(new PatchCable(componentsList.get(2), Multiples_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), VCO_CONSTANTS.PATCHIN_FREQ));
-    addPatchCable(new PatchCable(componentsList.get(2), Multiples_CONSTANTS.PATCHOUT_COPY1, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Power_CONSTANTS.PATCHOUT_POWER, componentsList.get(2), Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(2), Multiples1to8_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), Multiples1to8_CONSTANTS.PATCHOUT_COPY1, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
     addPatchCable(new PatchCable(componentsList.get(1), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
     
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
@@ -1029,7 +1090,7 @@ public class CustomInstrument implements Instrument
   {
     try
     {
-      addSynthComponent(new Multiples());
+      addSynthComponent(new Multiples1to8());
       addSynthComponent(new EnvelopeGenerator());
       addSynthComponent(new VCO());
     }
@@ -1039,9 +1100,9 @@ public class CustomInstrument implements Instrument
     }
     
     //Simple patch to make an enveloped square wave play for the key
-    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples_CONSTANTS.PATCHIN_ORIGINAL));
-    addPatchCable(new PatchCable(componentsList.get(0), Multiples_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
-    addPatchCable(new PatchCable(componentsList.get(0), Multiples_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
     addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
       
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
