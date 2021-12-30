@@ -303,6 +303,14 @@ public class CustomInstrument implements Instrument
       {
         scClones[i] = new VCO();
       }
+      else if(sc instanceof Mixer8to1)
+      {
+        scClones[i] = new Mixer8to1();
+      }
+      else if(sc instanceof Mixer4to2)
+      {
+        scClones[i] = new Mixer4to2();
+      }
       else
       {
         throw new Exception("No such subclass of SynthComponent: " + sc.getClass());
@@ -580,13 +588,15 @@ public class CustomInstrument implements Instrument
     //setupDebugNoiseGenerator();
     //setupDebugPatchCable();
     //setupDebugMultiples1to8();
-    setupDebugMultiples2to4();
+    //setupDebugMultiples2to4();
     //setupDebugVCA();
     //setupDebugEG_ADSR();
     //setupDebugKeyboard();
     //setupDebugVCF();
     //setupDebugList();
     //setupDebugPolyphonic();
+    //setupDebugMixer8to1();
+    setupDebugMixer4to2();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -602,13 +612,15 @@ public class CustomInstrument implements Instrument
     //drawDebugNoiseGenerator();
     //drawDebugPatchCable();
     //drawDebugMultiples1to8();
-    drawDebugMultiples2to4();
+    //drawDebugMultiples2to4();
     //drawDebugVCA();
     //drawDebugEG_ADSR();
     //drawDebugKeyboard();
     //drawDebugVCF();
     //drawDebugList();
     //drawDebugPolyphonic();
+    //drawDebugMixer8to1();
+    drawDebugMixer4to2();
     drawDebugReverseFocus(); //Unlike other debug tests, this one lacks a setup and needs to use one from above!
     
     //Can now test rendering, no matter what components are shown (copied here from 
@@ -1147,6 +1159,161 @@ public class CustomInstrument implements Instrument
         System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
       }
     }
+    
+    draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
+  }
+  
+  //Recreates the Polyphonic (which recreated the Keyboard) debug test above, but now
+  //  with polyphonic support via the keyboard object and a mixer
+  //NOTE: To test the mixing part, also include an ongoing wave tone (so keyboard adds another sound to it)
+  public void setupDebugMixer8to1()
+  {
+    try
+    {
+      addSynthComponent(new Multiples1to8());
+      addSynthComponent(new EnvelopeGenerator());
+      addSynthComponent(new VCO());
+      addSynthComponent(new Mixer8to1());
+    }
+    catch(Exception e)
+    {
+      System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugMixer8to1");
+    }
+    
+    //Simple patch to make an enveloped square wave play for the key
+    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
+    addPatchCable(new PatchCable(componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE, componentsList.get(3), Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL0));
+    //Also patch an ongoing tone through the mixer to test it
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_TRIANGLE, componentsList.get(3), Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL1));
+      
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    //NOTE: If this works, then will make a special mixer component for the instrument!
+    println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
+    for(SynthComponent mx : polyphonicCompClones.get(componentsList.get(3)))
+    {
+      mx.getPatchOut(Mixer8to1_CONSTANTS.PATCHOUT_MERGE).patch(toAudioOutput);
+    }
+      
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    setKnob(2, VCO_CONSTANTS.KNOB_FREQ, 0.0); //Only Keyboard sets the frequency
+    setKnob(2, VCO_CONSTANTS.KNOB_AMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN, 0.5);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_DECAY, 0.333333); //Since [0,3], this should be about 1 second
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ATTACK, 0.16667); //Since [0,3], this should be about 0.5 seconds
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
+    
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  public void drawDebugMixer8to1()
+  {
+    //To avoid needing to integrate the test with the keyPress and keyRelease listeners,
+    //  simply assume the lowercase turns a note on and uppercase turns it off (use the
+    //  lowercase character for the sake of binding)
+    if(Character.isLowerCase(key))
+    {
+      int assignedIndex = keyboard.set_key(key, Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz());
+      if(assignedIndex >= 0)
+      {
+        System.out.println("Playing key " + assignedIndex + " bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    else if(Character.isUpperCase(key))
+    {
+      boolean unassignedIndex = keyboard.unset_key(Character.toLowerCase(key));
+      if(unassignedIndex)
+      {
+        System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    
+    //Try out the mixer's volume knobs with the mouse
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL0, (float)mouseX / (float)width);
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL1, (float)mouseY / (float)width);
+    
+    draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
+  }
+  
+  //Recreates the Polyphonic (which recreated the Keyboard) debug test above, but now
+  //  with polyphonic support via the keyboard object and a mixer
+  //NOTE: To test the mixing part, also include an ongoing wave tone (so keyboard adds another sound to it)
+  public void setupDebugMixer4to2()
+  {
+    try
+    {
+      addSynthComponent(new Multiples1to8());
+      addSynthComponent(new EnvelopeGenerator());
+      addSynthComponent(new VCO());
+      addSynthComponent(new Mixer4to2());
+    }
+    catch(Exception e)
+    {
+      System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugMixer8to1");
+    }
+    
+    //Simple patch to make an enveloped square wave play for the key
+    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
+    addPatchCable(new PatchCable(componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE, componentsList.get(3), Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL0));
+    //Also patch an ongoing tone through the mixer to test it
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_TRIANGLE, componentsList.get(3), Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL7));
+      
+    //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
+    //NOTE: If this works, then will make a special mixer component for the instrument!
+    println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
+    for(SynthComponent mx : polyphonicCompClones.get(componentsList.get(3)))
+    {
+      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE0).patch(toAudioOutput);
+      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE1).patch(toAudioOutput);
+    }
+      
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    setKnob(2, VCO_CONSTANTS.KNOB_FREQ, 0.0); //Only Keyboard sets the frequency
+    setKnob(2, VCO_CONSTANTS.KNOB_AMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN, 0.5);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_DECAY, 0.333333); //Since [0,3], this should be about 1 second
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ATTACK, 0.16667); //Since [0,3], this should be about 0.5 seconds
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
+    
+    //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
+    toAudioOutput.patch(allInstruments_toOut);
+  }
+  public void drawDebugMixer4to2()
+  {
+    //To avoid needing to integrate the test with the keyPress and keyRelease listeners,
+    //  simply assume the lowercase turns a note on and uppercase turns it off (use the
+    //  lowercase character for the sake of binding)
+    if(Character.isLowerCase(key))
+    {
+      int assignedIndex = keyboard.set_key(key, Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz());
+      if(assignedIndex >= 0)
+      {
+        System.out.println("Playing key " + assignedIndex + " bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    else if(Character.isUpperCase(key))
+    {
+      boolean unassignedIndex = keyboard.unset_key(Character.toLowerCase(key));
+      if(unassignedIndex)
+      {
+        System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    
+    //Try out the mixer's volume knobs with the mouse
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL0, (float)mouseX / (float)width);
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL7, (float)mouseY / (float)width);
     
     draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
   }
