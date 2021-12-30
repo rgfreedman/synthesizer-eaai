@@ -21,8 +21,10 @@ public static class CustomInstrument_CONSTANTS
 {
   //The keyboard is not part of the list of components, and thus has its own offset index
   public static final int KEYBOARD_INDEX = -1;
+  //The instrument's mixer is not part of the list of components, and thus has its own offset index
+  public static final int MIXERINSTRUMENT_INDEX = KEYBOARD_INDEX - 1;
   //This means checking for a bad component is not as simple as < 0, making it the next offset index
-  public static final int NO_SUCH_INDEX = KEYBOARD_INDEX - 1;
+  public static final int NO_SUCH_INDEX = MIXERINSTRUMENT_INDEX - 1;
 }
 
 public class CustomInstrument implements Instrument
@@ -41,16 +43,14 @@ public class CustomInstrument implements Instrument
   private ArrayList<PatchCable> patchesList;
   //The one exception is the keyboard, which is included as a default component outside the list
   private Keyboard keyboard;
+  //The other exception is the instrument's mixer, also included as a default component outside the list
+  private MixerInstrument toAudioOutput;
   
   //In order to capture polyphony (simultaneous keyboard notes at once), need copies of
   //  the instrument, each using a unique keyboard out patch
   //This means we need to apply changes in the instrument across all copies; synced via a map
   private HashMap<SynthComponent, SynthComponent[]> polyphonicCompClones;
   private HashMap<PatchCable, PatchCable[]> polyphonicPatchClones;
-  
-  //Unique feature outside tree data structure is that the leaves producing audio all
-  //  patch to the Summer UGen (which adds the soundwaves together) for output
-  private Summer toAudioOutput;
   
   public CustomInstrument()
   {
@@ -63,15 +63,28 @@ public class CustomInstrument implements Instrument
     patchesList = new ArrayList();
     keyboard = new Keyboard();
     
+    //Initialize the instrument's mixer so that there is a connection to the audio output
+    toAudioOutput = new MixerInstrument();
+    
     //Initialize the polyphonic clone data structure, which will interact with the keyboard
     polyphonicCompClones = new HashMap();
     polyphonicPatchClones = new HashMap();
-    
-    //Initialize the summer so that there is something that tries to play when ready
-    toAudioOutput = new Summer();
+
+    //NOTE: To handle the patching with polyphony, toAudioOutput has clones unlike the keyboard
+    MixerInstrument[] taoClones = new MixerInstrument[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
+    taoClones[0] = toAudioOutput;
+    for(int i = 1; i < taoClones.length; i++)
+    {
+      taoClones[i] = new MixerInstrument();
+    }
+    polyphonicCompClones.put(toAudioOutput, taoClones);
     
     //Due to the design of this synthesizer, patching is maintained even when notes do not play
-    toAudioOutput.patch(allInstruments_toOut);
+    //NOTE: This means all the polyphonic clones patch out together (no visible patch means we do this manually here)
+    for(int i = 0; i < taoClones.length; i++)
+    {
+      taoClones[i].getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
+    }
   }
   
   //Methods needed for the Instrument interface
@@ -81,14 +94,22 @@ public class CustomInstrument implements Instrument
   //  global Summer that's plugged into the output]
   public void noteOn(float dur)
   {
-    toAudioOutput.patch(allInstruments_toOut);
+    SynthComponent[] taoClones = polyphonicCompClones.get(toAudioOutput);
+    for(int i = 0; i < taoClones.length; i++)
+    {
+      taoClones[i].getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
+    }
   }
   
   //Unpatch the summer from the audio output [a.k.a. unplug the local Summer 
   //  from the global Summer that's plugged into the output]
   public void noteOff()
   {
-    toAudioOutput.unpatch(allInstruments_toOut);
+    SynthComponent[] taoClones = polyphonicCompClones.get(toAudioOutput);
+    for(int i = 0; i < taoClones.length; i++)
+    {
+      taoClones[i].getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).unpatch(allInstruments_toOut);
+    }
   }
   
   //Performs updates to the instrument (via updates to each component) in the draw iteration
@@ -115,6 +136,14 @@ public class CustomInstrument implements Instrument
     if(keyboard != null)
     {
       keyboard.draw_update();
+    }
+    //The instrument's mixer is also standalone => call its render separately
+    if(toAudioOutput != null)
+    {
+      for(SynthComponent cloneTAO : polyphonicCompClones.get(toAudioOutput))
+      {
+        cloneTAO.draw_update();
+      }
     }
   }
   
@@ -162,6 +191,11 @@ public class CustomInstrument implements Instrument
     {
       keyboard.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
     }
+    //The instrument's mixer is also standalone => call its render separately
+    if(toAudioOutput != null)
+    {
+      toAudioOutput.render(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH, Render_CONSTANTS.UPPER_BORDER_HEIGHT);
+    }
     
     //Iterate over patches (they are rendered globally)
     for(int i = 0; i < patchesList.size(); i++)
@@ -190,8 +224,11 @@ public class CustomInstrument implements Instrument
       return keyboard;
     }
     
-    //Quick case: if the point is within the right border, then the mixer for the speaker has focus
-    //COMING SOON!
+    //Quick case: if the point is within the right-center border, then the instrument's mixer has focus
+    if(Render_CONSTANTS.rect_contains_point(Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH, Render_CONSTANTS.UPPER_BORDER_HEIGHT, Render_CONSTANTS.RIGHT_BORDER_WIDTH, Render_CONSTANTS.RIGHT_BORDER_HEIGHT, x, y))
+    {
+      return toAudioOutput;
+    }
     
     //Longer case: iterate over the components in the list and identify if any of them have focus
     for(int r = 0; r < Render_CONSTANTS.TILE_VERT_COUNT; r++)
@@ -227,6 +264,11 @@ public class CustomInstrument implements Instrument
     if(keyboard == sc)
     {
       return CustomInstrument_CONSTANTS.KEYBOARD_INDEX;
+    }
+    //Special case of the instrument's mixer (not in componentsList)
+    if(toAudioOutput == sc)
+    {
+      return CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX;
     }
     
     for(int i = 0; i < componentsList.size(); i++)
@@ -275,6 +317,19 @@ public class CustomInstrument implements Instrument
       {
         scClones[i] = new LFO();
       }
+      else if(sc instanceof Mixer8to1)
+      {
+        scClones[i] = new Mixer8to1();
+      }
+      else if(sc instanceof Mixer4to2)
+      {
+        scClones[i] = new Mixer4to2();
+      }
+      else if(sc instanceof MixerInstrument)
+      {
+        //The other exception to the rule... instrument mixers should be unique and external to this portion
+        throw new Exception("Cannot include a MixerInstrument or its subclass (" + sc.getClass() + ") in instrument");
+      }
       else if(sc instanceof Multiples1to8)
       {
         scClones[i] = new Multiples1to8();
@@ -302,14 +357,6 @@ public class CustomInstrument implements Instrument
       else if(sc instanceof VCO)
       {
         scClones[i] = new VCO();
-      }
-      else if(sc instanceof Mixer8to1)
-      {
-        scClones[i] = new Mixer8to1();
-      }
-      else if(sc instanceof Mixer4to2)
-      {
-        scClones[i] = new Mixer4to2();
       }
       else
       {
@@ -366,7 +413,7 @@ public class CustomInstrument implements Instrument
   public boolean setKnob(int componentIndex, int knobIndex, float position)
   {
     //Cannot set a component if its index does not exist (no knobs on keyboard)
-    if((componentIndex < 0) || (componentIndex >= componentsList.size()))
+    if((componentIndex <= CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (componentIndex >= componentsList.size()))
     {
       if(DEBUG_INTERFACE_KNOB)
       {
@@ -376,7 +423,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = componentsList.get(componentIndex);
+    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
     
     //Cannot set the knob if it does not exist, the accessor would return null
     if(sc.getKnob(knobIndex) == null)
@@ -418,7 +465,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : componentsList.get(componentIndex);
+    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
     
     //Cannot set the patchOut if it does not exist, the accessor would return null
     if(sc.getPatchOut(patchoutIndex) == null)
@@ -440,7 +487,7 @@ public class CustomInstrument implements Instrument
       return false;
     }
     
-    //Patching in keyboard case
+    //Patching in keyboard case because it is not cloned
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
@@ -462,7 +509,7 @@ public class CustomInstrument implements Instrument
         }
       }
     }
-    //For non-keyboard
+    //For non-keyboard, including the instrument mixer (since it is cloned)
     else
     {
       //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
@@ -505,7 +552,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : componentsList.get(componentIndex);
+    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
     
     //Cannot set the patchIn if it does not exist, the accessor would return null
     if(sc.getPatchIn(patchinIndex) == null)
@@ -527,7 +574,7 @@ public class CustomInstrument implements Instrument
       return false;
     }
     
-    //Patching in keyboard case---awkwardly, there are no patch-ins on the keyboard
+    //Patching in keyboard case because it is not cloned---awkwardly, there are no patch-ins on the keyboard (so dead code for now)
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
@@ -549,7 +596,7 @@ public class CustomInstrument implements Instrument
         }
       }
     }
-    //For non-keyboard
+    //For non-keyboard, including the instrumet mixer because it is cloned
     else
     {
       //Iterate over all the clones (first clone is the original sc and pc) and set the patchOut
@@ -596,7 +643,8 @@ public class CustomInstrument implements Instrument
     //setupDebugList();
     //setupDebugPolyphonic();
     //setupDebugMixer8to1();
-    setupDebugMixer4to2();
+    //setupDebugMixer4to2();
+    setupDebugMixerInstrument();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -620,7 +668,8 @@ public class CustomInstrument implements Instrument
     //drawDebugList();
     //drawDebugPolyphonic();
     //drawDebugMixer8to1();
-    drawDebugMixer4to2();
+    //drawDebugMixer4to2();
+    drawDebugMixerInstrument();
     drawDebugReverseFocus(); //Unlike other debug tests, this one lacks a setup and needs to use one from above!
     
     //Can now test rendering, no matter what components are shown (copied here from 
@@ -691,9 +740,9 @@ public class CustomInstrument implements Instrument
     root = new VCO();
     components = new SynthComponent[1];
     components[0] = root;
-    root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    root.getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   private void drawDebugVCO()
   {
@@ -710,9 +759,9 @@ public class CustomInstrument implements Instrument
     components[1] = new VCO();
     //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
     root.getPatchOut(LFO_CONSTANTS.PATCHOUT_SINE).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_AMP));
-    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //To have the VCO kept constant, set the VCO knobs once and leave alone afterwards
     components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(440.0 / 6000.0); //NOTE: Maybe allow knob to be directly set to a value?
@@ -732,9 +781,9 @@ public class CustomInstrument implements Instrument
     components[1] = new VCO();
     //Patch the VCO to the speaker and the LFO to the VCO's amplitude (for tremolo effect)
     root.getPatchOut(Power_CONSTANTS.PATCHOUT_POWER).patch(components[1].getPatchIn(VCO_CONSTANTS.PATCHIN_FREQ));
-    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //To have the VCO kept constant, set the VCO knobs once and leave alone afterwards
     components[1].getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0); //NOTE: Maybe allow knob to be directly set to a value?
@@ -750,9 +799,9 @@ public class CustomInstrument implements Instrument
     root = new NoiseGenerator();
     components = new SynthComponent[1];
     components[0] = root;
-    root.getPatchOut(NoiseGenerator_CONSTANTS.PATCHOUT_PINK).patch(toAudioOutput);
+    root.getPatchOut(NoiseGenerator_CONSTANTS.PATCHOUT_PINK).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   private void drawDebugNoiseGenerator()
   {
@@ -771,9 +820,9 @@ public class CustomInstrument implements Instrument
     patches = new PatchCable[1];
     patches[0] = new PatchCable(components[0], LFO_CONSTANTS.PATCHOUT_TRIANGLE, components[1], VCO_CONSTANTS.PATCHIN_AMP);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[1].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the LFO to have max amplitude for maximum tremolo
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
@@ -802,15 +851,15 @@ public class CustomInstrument implements Instrument
     patches[2] = new PatchCable(components[1], Multiples1to8_CONSTANTS.PATCHOUT_COPY1, components[3], VCO_CONSTANTS.PATCHIN_AMP);
     patches[3] = new PatchCable(components[1], Multiples1to8_CONSTANTS.PATCHOUT_COPY2, components[4], VCO_CONSTANTS.PATCHIN_AMP);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
-    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
-    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Set the frequency knobs of the VCOs to be constant, forcing a harmonic chord
     components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)440 / (float)components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),5)) / (float)components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),9)) / (float)components[4].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the LFO to have max amplitude for maximum tremolo
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
@@ -846,12 +895,12 @@ public class CustomInstrument implements Instrument
     patches[6] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY11, components[7], VCO_CONSTANTS.PATCHIN_AMP);
     patches[7] = new PatchCable(components[1], Multiples2to4_CONSTANTS.PATCHOUT_COPY12, components[8], VCO_CONSTANTS.PATCHIN_AMP);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
-    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
-    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
-    components[6].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
-    components[7].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
-    components[8].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput);
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[3].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[4].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[6].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[7].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+    components[8].getPatchOut(VCO_CONSTANTS.PATCHOUT_TRIANGLE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Set the frequency knobs of the VCOs to be constant, forcing a harmonic chord
     components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)440 / (float)components[2].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(440 * pow(pow(2,1.0/12.0),5)) / (float)components[3].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
@@ -860,7 +909,7 @@ public class CustomInstrument implements Instrument
     components[7].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(220 * pow(pow(2,1.0/12.0),5)) / (float)components[7].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     components[8].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition((float)(220 * pow(pow(2,1.0/12.0),9)) / (float)components[8].getKnob(VCO_CONSTANTS.KNOB_FREQ).getMaximumValue());
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the LFO to have max amplitude for maximum tremolo
     root.getKnob(LFO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
@@ -886,9 +935,9 @@ public class CustomInstrument implements Instrument
     patches[0] = new PatchCable(components[0], VCO_CONSTANTS.PATCHOUT_SINE, components[1], VCA_CONSTANTS.PATCHIN_WAVE);
     patches[1] = new PatchCable(components[1], VCA_CONSTANTS.PATCHOUT_WAVE, components[2], VCO_CONSTANTS.PATCHIN_FREQ);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput);
+    components[2].getPatchOut(VCO_CONSTANTS.PATCHOUT_SQUARE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the non-modulated knobs to have fixed values for testing purposes
     root.getKnob(VCO_CONSTANTS.KNOB_AMP).setCurrentPosition(1.0);
@@ -918,9 +967,9 @@ public class CustomInstrument implements Instrument
     patches[3] = new PatchCable(components[1], VCO_CONSTANTS.PATCHOUT_SQUARE, components[3], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
     
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[3].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    components[3].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
     components[1].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(0.0); //Only Power sets the frequency
@@ -969,7 +1018,7 @@ public class CustomInstrument implements Instrument
       patches[3 + (4 * i)] = new PatchCable(components[3 + (3 * i)], VCO_CONSTANTS.PATCHOUT_SQUARE, components[2 + (3 * i)], EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE);
       
       //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-      components[2 + (3 * i)].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+      components[2 + (3 * i)].getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
       
       //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
       components[3 + (3 * i)].getKnob(VCO_CONSTANTS.KNOB_FREQ).setCurrentPosition(0.0); //Only Keyboard sets the frequency
@@ -984,7 +1033,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   private void drawDebugKeyboard()
   {
@@ -1024,9 +1073,9 @@ public class CustomInstrument implements Instrument
     patches[0] = new PatchCable(components[2], NoiseGenerator_CONSTANTS.PATCHOUT_PINK, components[0], VCF_CONSTANTS.PATCHIN_WAVE);
     patches[1] = new PatchCable(components[0], VCF_CONSTANTS.PATCHOUT_WAVE, components[1], VCA_CONSTANTS.PATCHIN_WAVE);
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    components[1].getPatchOut(VCA_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    components[1].getPatchOut(VCA_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the non-modulated knobs to have fixed values for testing purposes
     root.getKnob(VCF_CONSTANTS.KNOB_RES).setCurrentPosition(0.0); //No resonance
@@ -1062,9 +1111,9 @@ public class CustomInstrument implements Instrument
     addPatchCable(new PatchCable(componentsList.get(1), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(3), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
     
     //Patch cable still cannot connect to speaker since it is not a component... perhaps worth making it one?
-    componentsList.get(3).getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+    componentsList.get(3).getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     
     //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
     println("Setting knobs results: "
@@ -1121,7 +1170,7 @@ public class CustomInstrument implements Instrument
     println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
     for(SynthComponent eg : polyphonicCompClones.get(componentsList.get(1)))
     {
-      eg.getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput);
+      eg.getPatchOut(EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     }
       
     //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
@@ -1136,7 +1185,7 @@ public class CustomInstrument implements Instrument
     setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
     
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   public void drawDebugPolyphonic()
   {
@@ -1194,7 +1243,7 @@ public class CustomInstrument implements Instrument
     println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
     for(SynthComponent mx : polyphonicCompClones.get(componentsList.get(3)))
     {
-      mx.getPatchOut(Mixer8to1_CONSTANTS.PATCHOUT_MERGE).patch(toAudioOutput);
+      mx.getPatchOut(Mixer8to1_CONSTANTS.PATCHOUT_MERGE).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     }
       
     //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
@@ -1209,7 +1258,7 @@ public class CustomInstrument implements Instrument
     setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
     
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   public void drawDebugMixer8to1()
   {
@@ -1235,7 +1284,7 @@ public class CustomInstrument implements Instrument
     
     //Try out the mixer's volume knobs with the mouse
     setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL0, (float)mouseX / (float)width);
-    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL1, (float)mouseY / (float)width);
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL1, (float)mouseY / (float)height);
     
     draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
   }
@@ -1271,8 +1320,8 @@ public class CustomInstrument implements Instrument
     println("Now connecting all " + polyphonicCompClones.get(componentsList.get(1)).length + " clones of Envelope Generator to the audio output");
     for(SynthComponent mx : polyphonicCompClones.get(componentsList.get(3)))
     {
-      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE0).patch(toAudioOutput);
-      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE1).patch(toAudioOutput);
+      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE0).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
+      mx.getPatchOut(Mixer4to2_CONSTANTS.PATCHOUT_MERGE1).patch(toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE));
     }
       
     //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
@@ -1287,7 +1336,7 @@ public class CustomInstrument implements Instrument
     setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
     
     //Not using the instrument notes, so have to patch to the speaker ourselves for constant sound
-    toAudioOutput.patch(allInstruments_toOut);
+    toAudioOutput.getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
   }
   public void drawDebugMixer4to2()
   {
@@ -1313,7 +1362,73 @@ public class CustomInstrument implements Instrument
     
     //Try out the mixer's volume knobs with the mouse
     setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL0, (float)mouseX / (float)width);
-    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL7, (float)mouseY / (float)width);
+    setKnob(3, Mixer8to1_CONSTANTS.KNOB_VOL7, (float)mouseY / (float)height);
+    
+    draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
+  }
+  
+  //Recreates the Mixer1to8 (which recreated the Polyphonic ) debug test above, but now
+  //  with polyphonic support via the keyboard object and a mixer for the overall instrument
+  //NOTE: To test the mixing part, also include an ongoing wave tone (so keyboard adds another sound to it)
+  public void setupDebugMixerInstrument()
+  {
+    try
+    {
+      addSynthComponent(new Multiples1to8());
+      addSynthComponent(new EnvelopeGenerator());
+      addSynthComponent(new VCO());
+    }
+    catch(Exception e)
+    {
+      System.out.println("ERROR: " + e + "\n\tWhen defining components in setupDebugMixer8to1");
+    }
+    
+    //Simple patch to make an enveloped square wave play for the key
+    addPatchCable(new PatchCable(keyboard, Keyboard_CONSTANTS.PATCHOUT_KEY0, componentsList.get(0), Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY0, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_GATE));
+    addPatchCable(new PatchCable(componentsList.get(0), Multiples1to8_CONSTANTS.PATCHOUT_COPY1, componentsList.get(2), VCO_CONSTANTS.PATCHIN_FREQ));
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_SQUARE, componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE));
+    //Setup the patches to now use the instrument's mixer
+    addPatchCable(new PatchCable(componentsList.get(1), EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE, toAudioOutput, MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL0));
+    //Also patch an ongoing tone through the mixer to test it
+    addPatchCable(new PatchCable(componentsList.get(2), VCO_CONSTANTS.PATCHOUT_TRIANGLE, toAudioOutput, MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL1));
+      
+    //Force the unmodified knobs to have fixed values for testing purposes (ADSR has too many on its own)
+    setKnob(2, VCO_CONSTANTS.KNOB_FREQ, 0.0); //Only Keyboard sets the frequency
+    setKnob(2, VCO_CONSTANTS.KNOB_AMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP, 0.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP, 1.0);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN, 0.5);
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_DECAY, 0.333333); //Since [0,3], this should be about 1 second
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_ATTACK, 0.16667); //Since [0,3], this should be about 0.5 seconds
+    setKnob(1, EnvelopeGenerator_CONSTANTS.KNOB_RELEASE, 0.666667); //Since [0,3], this should be about 2 seconds
+  }
+  public void drawDebugMixerInstrument()
+  {
+    //To avoid needing to integrate the test with the keyPress and keyRelease listeners,
+    //  simply assume the lowercase turns a note on and uppercase turns it off (use the
+    //  lowercase character for the sake of binding)
+    if(Character.isLowerCase(key))
+    {
+      int assignedIndex = keyboard.set_key(key, Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz());
+      if(assignedIndex >= 0)
+      {
+        System.out.println("Playing key " + assignedIndex + " bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    else if(Character.isUpperCase(key))
+    {
+      boolean unassignedIndex = keyboard.unset_key(Character.toLowerCase(key));
+      if(unassignedIndex)
+      {
+        System.out.println("Stopping key bound to " + key + " (midi #" + Character.getNumericValue(key) + " => " + Frequency.ofMidiNote(60.0 + Character.getNumericValue(key)).asHz() + " Hz)");
+      }
+    }
+    
+    //Try out the mixer's volume knobs with the mouse
+    setKnob(CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX, MixerInstrument_CONSTANTS.KNOB_VOL0, (float)mouseX / (float)width);
+    setKnob(CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX, MixerInstrument_CONSTANTS.KNOB_VOL1, (float)mouseY / (float)height);
     
     draw_update(); //Lesson learned from this debug---need to let draw_update call the clones as well!
   }
@@ -1331,8 +1446,8 @@ public class CustomInstrument implements Instrument
         println("synth component in the click = " + focus);
         //Need to figure out the coordinates for focus's placement
         int compIndex = findSynthComponentIndex(focus);
-        int topLeftX = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH) : (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
-        int topLeftY = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT) : (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int topLeftX = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH) : (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int topLeftY = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.UPPER_BORDER_HEIGHT) : (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
         int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
         print("\tSpecifically clicked on element: ");
         if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
