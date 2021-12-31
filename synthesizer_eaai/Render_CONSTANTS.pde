@@ -1,7 +1,7 @@
 /*Render_CONSTANTS.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 5
+Last Updated: 2021 December 30
 
 Class for constants that affect rendering components on the screen; edit the assigned
 values to alter how things display on the screen.
@@ -96,6 +96,11 @@ public static class Render_CONSTANTS
   {
     return (radius * radius) >= (((center_x - point_x) * (center_x - point_x)) + ((center_y - point_y) * (center_y - point_y)));
   }
+  
+  //When handling coordinate information and an impossible/invalid value is needed to
+  //  trigger some sort of null or error, then use this constant
+  //NOTE: Coordinates on screen and any shape's length should be non-negative if valid
+  public static final int INVALID_VALUE = -1;
   
   //The focus efforts in a SynthComponent object require a pair of element and index
   //IDs for elements

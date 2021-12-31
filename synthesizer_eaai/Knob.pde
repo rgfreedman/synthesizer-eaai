@@ -1,7 +1,7 @@
 /*Knob.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 26
+Last Updated: 2021 December 30
 
 Class for a knob found on a component within a synthesized instrument.  Simply has a 
 current position, min/max interval, and ways to compute the value via interpolation 
@@ -19,6 +19,9 @@ public class Knob
   protected float currentPosition = 0.0;
   private final float MINIMUM_POSITION = 0.0;
   private final float MAXIMUM_POSITION = 1.0;
+  //The rendering information that is not built-in to Render_CONSTANTS class
+  private int topLeftX = Render_CONSTANTS.INVALID_VALUE;
+  private int topLeftY = Render_CONSTANTS.INVALID_VALUE;
   
   //Default constructor - assign dummy values [0,1] with position at minimum value
   public Knob()
@@ -92,6 +95,10 @@ public class Knob
   //NOTE: Renders locally (within the slider's rectangle); need global coordinates for offset
   public void render(int xOffset, int yOffset)
   {
+    //Store the offsets as the top-left coordinate position for the knob
+    topLeftX = xOffset;
+    topLeftY = yOffset;
+    
     //The slider itself is a white rectangle
     stroke(255, 255, 255);
     fill(255, 255, 255);
@@ -119,5 +126,27 @@ public class Knob
     {
       return false;
     }
+  }
+  
+  //Also need to know the rectangle (without the slider) information for position calculations
+  //Knob's rectangle's top-left coordinate's X-value
+  public int getTopLeftX()
+  {
+    return topLeftX;
+  }
+  //Knob's rectangle's top-left coordinate's Y-value
+  public int getTopLeftY()
+  {
+    return topLeftY;
+  }
+  //Knob's rectangle's width
+  public int getWidth()
+  {
+    return Render_CONSTANTS.KNOB_WIDTH;
+  }
+  //Knob's rectangle's height
+  public int getHeight()
+  {
+    return Render_CONSTANTS.KNOB_HEIGHT;
   }
 }

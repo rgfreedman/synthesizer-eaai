@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 5
+Last Updated: 2021 December 30
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -257,7 +257,9 @@ public class CustomInstrument implements Instrument
   
   //Some methods need the index of a SynthComponent rather than the componet itself
   //NOTE: Finds the exact match of sc (via == for pointer, not .equals for features)
-  //NOTE: Returns -2 when no match was found, and the keyboard via -1
+  //NOTE: Returns CustomInstrument_CONSTANTS.NO_SUCH_INDEX when no match was found, 
+  //      the keyboard via CustomInstrument_CONSTANTS.KEYBOARD_INDEX, and the
+  //      instrument's mixer via CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX
   public int findSynthComponentIndex(SynthComponent sc)
   {
     //Special case of the keyboard (not in componentsList)
@@ -281,6 +283,150 @@ public class CustomInstrument implements Instrument
     
     //Failed to find a match at this point...
     return CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+  }
+  
+  //Invert findSynthComponentIndex to get the component specified at the index
+  //NOTE: Returns null when CustomInstrument_CONSTANTS.NO_SUCH_INDEX or other invalid index is provided
+  public SynthComponent getSynthComponent(int index)
+  {
+    //Special case of the keyboard (not in componentsList)
+    if(index == CustomInstrument_CONSTANTS.KEYBOARD_INDEX)
+    {
+      return keyboard;
+    }
+    //Special case of the instrument's mixer (not in componentsList)
+    if(index == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
+    {
+      return toAudioOutput;
+    }
+    
+    //General case returns the component at the specified index if within bounds
+    if((index >= 0) && (index < componentsList.size()))
+    {
+      return componentsList.get(index);
+    }
+    
+    //Failed to find a match at this point...
+    return null;
+  }
+  
+  //To adjust the mouse cursor's position within a component, we need its rectangle information
+  //NOTE: Two versions, one with input as a SynthComponent object and the other as an indexed component in the list
+  //This is the top-left corner of the component's bounding rectangle's X-value
+  public int getComponentTopLeftX(SynthComponent sc)
+  {
+    int compIndex = findSynthComponentIndex(sc);
+    return getComponentTopLeftX(compIndex);
+  }
+  public int getComponentTopLeftX(int compIndex)
+  {
+    //If a non-existent component, then return an impossible value
+    if(compIndex == CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+    {
+      return Render_CONSTANTS.INVALID_VALUE;
+    }
+    //Keyboard is a special case because it is below the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX)
+    {
+      return (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH);
+    }
+    //Instrument's mixer is a special case because it is beside the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
+    {
+      return (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH);
+    }
+    //Everything else is in the component grid, which is just a tiled layout
+    else
+    {
+      return (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
+    }
+  }
+  //This is the top-left corner of the component's bounding rectangle's Y-value
+  public int getComponentTopLeftY(SynthComponent sc)
+  {
+    int compIndex = findSynthComponentIndex(sc);
+    return getComponentTopLeftY(compIndex);
+  }
+  public int getComponentTopLeftY(int compIndex)
+  {
+    //If a non-existent component, then return an impossible value
+    if(compIndex == CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+    {
+      return Render_CONSTANTS.INVALID_VALUE;
+    }
+    //Keyboard is a special case because it is below the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX)
+    {
+      return (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
+    }
+    //Instrument's mixer is a special case because it is beside the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
+    {
+      return (Render_CONSTANTS.UPPER_BORDER_HEIGHT);
+    }
+    //Everything else is in the component grid, which is just a tiled layout
+    else
+    {
+      return (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
+    }
+  }
+  public int getComponentWidth(SynthComponent sc)
+  {
+    int compIndex = findSynthComponentIndex(sc);
+    return getComponentWidth(compIndex);
+  }
+  //This is the width of the component's bounding rectangle
+  public int getComponentWidth(int compIndex)
+  {
+    //If a non-existent component, then return an impossible value
+    if(compIndex == CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+    {
+      return Render_CONSTANTS.INVALID_VALUE;
+    }
+    //Keyboard is a special case because it is below the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX)
+    {
+      return Render_CONSTANTS.LOWER_BORDER_WIDTH;
+    }
+    //Instrument's mixer is a special case because it is beside the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
+    {
+      return Render_CONSTANTS.RIGHT_BORDER_WIDTH;
+    }
+    //Everything else is in the component grid, which is just a tiled layout
+    else
+    {
+      return Render_CONSTANTS.COMPONENT_WIDTH;
+    }
+  }
+  public int getComponentHeight(SynthComponent sc)
+  {
+    int compIndex = findSynthComponentIndex(sc);
+    return getComponentHeight(compIndex);
+  }
+  //This is the height of the component's bounding rectangle
+  public int getComponentHeight(int compIndex)
+  {
+    //If a non-existent component, then return an impossible value
+    if(compIndex == CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+    {
+      return Render_CONSTANTS.INVALID_VALUE;
+    }
+    //Keyboard is a special case because it is below the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX)
+    {
+      return Render_CONSTANTS.LOWER_BORDER_HEIGHT;
+    }
+    //Instrument's mixer is a special case because it is beside the component grid
+    else if(compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
+    {
+      return Render_CONSTANTS.RIGHT_BORDER_HEIGHT - Render_CONSTANTS.UPPER_BORDER_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT;
+    }
+    //Everything else is in the component grid, which is just a tiled layout
+    else
+    {
+      return Render_CONSTANTS.COMPONENT_HEIGHT;
+    }
   }
   
   //For polyphonic purposes, create a synth component's clones all at once when setting up
@@ -1446,8 +1592,8 @@ public class CustomInstrument implements Instrument
         println("synth component in the click = " + focus);
         //Need to figure out the coordinates for focus's placement
         int compIndex = findSynthComponentIndex(focus);
-        int topLeftX = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH) : (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
-        int topLeftY = (compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.UPPER_BORDER_HEIGHT) : (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int topLeftX = getComponentTopLeftX(compIndex); //(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.LOWER_BORDER_WIDTH) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.APP_WIDTH - Render_CONSTANTS.RIGHT_BORDER_WIDTH) : (Render_CONSTANTS.LEFT_BORDER_WIDTH + (Render_CONSTANTS.COMPONENT_WIDTH * (compIndex % Render_CONSTANTS.TILE_HORIZ_COUNT)));
+        int topLeftY = getComponentTopLeftY(compIndex); //(compIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? (Render_CONSTANTS.APP_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT) : (compIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? (Render_CONSTANTS.UPPER_BORDER_HEIGHT) : (Render_CONSTANTS.UPPER_BORDER_HEIGHT + (Render_CONSTANTS.COMPONENT_HEIGHT * (compIndex / Render_CONSTANTS.TILE_HORIZ_COUNT)));
         int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
         print("\tSpecifically clicked on element: ");
         if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
