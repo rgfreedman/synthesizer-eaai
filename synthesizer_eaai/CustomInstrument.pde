@@ -560,11 +560,11 @@ public class CustomInstrument implements Instrument
     //If the provided patch cable already set its in-patch or out-patch, then remove across the clones
     if(pc.getPatchInComponent() != null)
     {
-      unsetPatchIn(pc.getPatchInIndex(), pc.getPatchInIndex());
+      unsetPatchIn(findSynthComponentIndex(pc.getPatchInComponent()), pc.getPatchInIndex());
     }
     if(pc.getPatchOutComponent() != null)
     {
-      unsetPatchOut(pc.getPatchOutIndex(), pc.getPatchOutIndex());
+      unsetPatchOut(findSynthComponentIndex(pc.getPatchOutComponent()), pc.getPatchOutIndex());
     }
     
     //Now delete the clones as an array and remove the mapping
@@ -824,7 +824,7 @@ public class CustomInstrument implements Instrument
     {
       if(DEBUG_INTERFACE_PATCH)
       {
-        println("[unsetPatchOut] patchoutIndex " + patchoutIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to unpatch out");
+        println("[unsetPatchOut] patchoutIndex " + patchoutIndex + " is out of bounds for componentIndex " + componentIndex + "(" + sc + ") => failed to unpatch out");
       }
       return false;
     }
@@ -912,7 +912,7 @@ public class CustomInstrument implements Instrument
     {
       if(DEBUG_INTERFACE_PATCH)
       {
-        println("[unsetPatchIn] patchinIndex " + patchinIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to unpatch in");
+        println("[unsetPatchIn] patchinIndex " + patchinIndex + " is out of bounds for componentIndex " + componentIndex + "(" + sc + ") => failed to unpatch in");
       }
       return false;
     }

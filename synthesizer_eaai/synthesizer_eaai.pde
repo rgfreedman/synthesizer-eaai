@@ -37,7 +37,7 @@ int mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index o
 //NOTE: "Dead code" warnings below when checking for multiple debug flags are expected because of lazy Boolean evaluation
 public final boolean DEBUG_SYSTEM = true; //For general procedural stuff, like control flow
 public final boolean DEBUG_INTERFACE_KNOB = false; //For testing interfacing (defined below) with the knob
-public final boolean DEBUG_INTERFACE_PATCH = false; //For testing interfacing (defined below) with the patches
+public final boolean DEBUG_INTERFACE_PATCH = true; //For testing interfacing (defined below) with the patches
 public final boolean DEBUG_INTERFACE_MOUSE = true; //For testing interfacing (definted below) with the mouse
 public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH || DEBUG_INTERFACE_MOUSE; //For testing interfacing features (GUI, set values via I/O-related function calls)
 
@@ -430,14 +430,12 @@ void mouseReleased()
         }
       }
     }
-    
+    //Simply set the target patches (all of them) to null to stop manipulating the patches
     mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-    //mouseNewInPatch(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetPatchCableIndex);
-    //mouseUnplugPatch(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetPatchCableIndex, CustomInstrument_CONSTANTS.NO_SUCH_INDEX, CustomInstrument_CONSTANTS.NO_SUCH_INDEX);
     
     //Lastly, remove the focus on the instrument and component as well
     mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
@@ -452,11 +450,77 @@ void mouseClicked()
   //  such as loading an instrument (for now, just abort since no extra functionality)
   if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null))
   {
+    if(DEBUG_INTERFACE_MOUSE)
+    {
+      print("\tNo instrument identified...\n");
+    }
     return;
   }
   
   if(mouseButton == RIGHT)
   {
+    //Identify the component of focus for the current instrument
+    SynthComponent focus = instruments.get(currentInstrument).getSynthComponentAt(mouseX, mouseY);
+    if(DEBUG_INTERFACE_MOUSE)
+    {
+      print("\tRight mouse pressed on component " + focus + "...\n");
+    }
+    //If there is a target component in the focus, then determine whether a knob or patch was selected
+    if(focus != null)
+    {
+      int topLeftX = instruments.get(currentInstrument).getComponentTopLeftX(focus);
+      int topLeftY = instruments.get(currentInstrument).getComponentTopLeftY(focus);
+      int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
+      
+      //If any element was found, then we will need the instrument and component indeces
+      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
+      {
+        mouseTargetInstrumentIndex = currentInstrument;
+        mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus);
+      }
+      
+      //When a patch is identified with an existing cable, then remove it from the instrument
+      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+      {
+        if(DEBUG_INTERFACE_MOUSE)
+        {
+          print("\t\tInput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+        }
+        //Null means no cable has been inserted yet => nothing to remove
+        if(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        {
+        }
+        //Otherwise, remove the patch cable
+        else
+        {
+          mouseRemovePatchIn(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+        }
+      }
+      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+      {
+        if(DEBUG_INTERFACE_MOUSE)
+        {
+          print("\t\tOutput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+        }
+        //Null means no cable has been inserted yet => nothing to remove
+        if(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        {
+        }
+        //Otherwise, remove the patch cable
+        else
+        {
+          mouseRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+        }
+      }
+      //Since the removal of patches is a one-and-done operation, release the focus indeces
+      mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+      mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+    }
+    //When no component is in the focus, then some extra functionality might exist in the
+    //  future to delete a component, but nothing for now
+    else
+    {
+    }
   }
 }
 
@@ -551,6 +615,40 @@ void mouseMovePatchIn(int instrumentIndex, int componentFromInIndex, int patchFr
   
   //Simply set the specified output patch cable, using the cable specified in From
   instruments.get(instrumentIndex).setPatchIn(componentToInIndex, patchToInIndex, instruments.get(instrumentIndex).getSynthComponent(componentFromInIndex).getCableIn(patchFromInIndex));
+}
+
+//Take an existing patch and remove it from the instrument
+void mouseRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIndex)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getPatchOut(patchOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableOut(patchOutIndex) == null))
+  {
+    return;
+  }
+  
+  //Simply set the specified output patch cable, using the cable specified in From
+  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableOut(patchOutIndex));
+}
+
+//Take an existing patch and remove it from the instrument
+void mouseRemovePatchIn(int instrumentIndex, int componentIndex, int patchInIndex)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getPatchIn(patchInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableIn(patchInIndex) == null))
+  {
+    return;
+  }
+  
+  //Simply set the specified output patch cable, using the cable specified in From
+  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableIn(patchInIndex));
 }
 
 //Due to closing with the global Summer's patch still active, we force the unpatch before quitting the application
