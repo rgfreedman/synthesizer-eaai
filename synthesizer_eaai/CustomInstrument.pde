@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 30
+Last Updated: 2021 December 31
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -29,9 +29,8 @@ public static class CustomInstrument_CONSTANTS
 
 public class CustomInstrument implements Instrument
 {
-  //NOTE: Keep patchTree, components, patches, and root for DEBUG legacy only---no longer used in the actual code
+  //NOTE: Keep components, patches, and root for DEBUG legacy only---no longer used in the actual code
   //Encode the tree object, including the root as the starting point for patching
-  private HashMap<UGen, ArrayList<UGen>> patchTree;
   private SynthComponent[] components;
   //Keep track of the patches through copies of the pointers
   private PatchCable[] patches;
@@ -54,8 +53,7 @@ public class CustomInstrument implements Instrument
   
   public CustomInstrument()
   {
-    //Initialize the map, but there are no components yet to set up mappings (outdated, keep for debug code legacy)
-    patchTree = new HashMap();
+    //Initialize, but there are no components yet to set up arrays (outdated, keep for debug code legacy)
     root = null;
     
     //Initialize data structures that will store the synth components (currently used)
@@ -554,6 +552,37 @@ public class CustomInstrument implements Instrument
     return true;
   }
   
+  //For polyphonic purposes, remove a patch cable's clones all at once when deleting
+  //  Each has an input parameter for the patch cable
+  //  Due to limitless patches, returns true only
+  public boolean removePatchCable(PatchCable pc)
+  {
+    //If the provided patch cable already set its in-patch or out-patch, then remove across the clones
+    if(pc.getPatchInComponent() != null)
+    {
+      unsetPatchIn(pc.getPatchInIndex(), pc.getPatchInIndex());
+    }
+    if(pc.getPatchOutComponent() != null)
+    {
+      unsetPatchOut(pc.getPatchOutIndex(), pc.getPatchOutIndex());
+    }
+    
+    //Now delete the clones as an array and remove the mapping
+    PatchCable[] pcClones = polyphonicPatchClones.get(pc);
+    for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < pcClones.length; i++)
+    {
+      pcClones[i] = null;
+    }
+    //Remove the mapping to leave stuff available for the garbage collector
+    polyphonicPatchClones.remove(pc);
+    
+    //Delete the component from the list
+    patchesList.remove(pc);
+    
+    //We will reach this point no matter what, but follow suit of removing synth components
+    return true;
+  }
+  
   //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
   //Return false when the setting fails (non-existent component OR non-existent thing to change)
   public boolean setKnob(int componentIndex, int knobIndex, float position)
@@ -596,6 +625,7 @@ public class CustomInstrument implements Instrument
     return true;
   }
   
+  //Plugs a patch cable into the given out patch
   //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
   //Return false when the setting fails (non-existent component OR non-existent thing to change)
   public boolean setPatchOut(int componentIndex, int patchoutIndex, PatchCable pc)
@@ -611,7 +641,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
+    SynthComponent sc = getSynthComponent(componentIndex); //(componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
     
     //Cannot set the patchOut if it does not exist, the accessor would return null
     if(sc.getPatchOut(patchoutIndex) == null)
@@ -683,6 +713,7 @@ public class CustomInstrument implements Instrument
     return true;
   }
   
+  //Plugs a patch cable into the given in patch
   //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
   //Return false when the setting fails (non-existent component OR non-existent thing to change)
   public boolean setPatchIn(int componentIndex, int patchinIndex, PatchCable pc)
@@ -698,7 +729,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Work with reference to the component because we will use it several times
-    SynthComponent sc = (componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
+    SynthComponent sc = getSynthComponent(componentIndex); //(componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
     
     //Cannot set the patchIn if it does not exist, the accessor would return null
     if(sc.getPatchIn(patchinIndex) == null)
@@ -762,6 +793,182 @@ public class CustomInstrument implements Instrument
         if(DEBUG_INTERFACE_PATCH)
         {
           println("\t => successful patch in? pcClone[" + i + "] plugs into " + pcClone[i].getPatchInComponent() + ", index " + pcClone[i].getPatchInIndex());
+        }
+      }
+    }
+    
+    //Patch-in settings complete---return true for success!
+    return true;
+  }
+  
+  //Unplugs a patch cable from the given out patch
+  //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
+  //Return false when the setting fails (non-existent component OR non-existent thing to change)
+  public boolean unsetPatchOut(int componentIndex, int patchoutIndex)
+  {
+    //Cannot set a component if its index does not exist
+    if((componentIndex <= CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (componentIndex >= componentsList.size()))
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchOut] componentIndex " + componentIndex + " is out of bounds (componentsList size " + componentsList.size() + ") => failed to unpatch out");
+      }
+      return false;
+    }
+    
+    //Work with reference to the component because we will use it several times
+    SynthComponent sc = getSynthComponent(componentIndex); //(componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
+    
+    //Cannot unset the patchOut if it does not exist, the accessor would return null
+    if(sc.getPatchOut(patchoutIndex) == null)
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchOut] patchoutIndex " + patchoutIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to unpatch out");
+      }
+      return false;
+    }
+    
+    //Also cannot unplug into a patch if it already lacks a plugged-in cable
+    if(sc.getCableOut(patchoutIndex) == null)
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchOut] patchoutIndex " + patchoutIndex + " is already unused for componentIndex " + componentIndex + " => failed to unpatch out");
+      }
+      return false;
+    }
+    
+    //Removing patch in keyboard case because it is not cloned
+    if(sc == keyboard)
+    {
+      //Iterate over all the patch cable clones currently plugged in and set the patchOut to null
+      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableOut(Keyboard_CONSTANTS.PATCHOUT_KEY0));
+      
+      for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[unsetPatchOut] patchoutIndex " + i + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchOut method also stores itself in the synth component
+        pcClone[i].setPatchOut(null, -1);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful unpatch out? pcClone[" + i + "] plugs into " + pcClone[i].getPatchOutComponent() + ", index " + pcClone[i].getPatchOutIndex());
+        }
+      }
+    }
+    //For non-keyboard, including the instrument mixer (since it is cloned)
+    else
+    {
+      //Iterate over all the clones (first clone is the original sc and the patch cable plugged into it) and set the patchOut to null
+      SynthComponent[] scClone = polyphonicCompClones.get(sc);
+      PatchCable[] pcClone = polyphonicPatchClones.get(sc.getCableOut(patchoutIndex));
+    
+      for(int i = 0; i < scClone.length; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[unsetPatchOut] patchoutIndex " + patchoutIndex + " of component clone " + i + " (" + scClone[i] + ") will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchOut method also stores itself in the synth component
+        pcClone[i].setPatchOut(null, -1);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful unpatch out? pcClone[" + i + "] plugs into " + pcClone[i].getPatchOutComponent() + ", index " + pcClone[i].getPatchOutIndex());
+        }
+      }
+    }
+    
+    //Patch-out settings complete---return true for success!
+    return true;
+  }
+  
+  //Unplugs a patch cable from the given in patch
+  //To maintain polyphony, apply changes to all cloned instruments as well as ordinary ones
+  //Return false when the setting fails (non-existent component OR non-existent thing to change)
+  public boolean unsetPatchIn(int componentIndex, int patchinIndex)
+  {
+    //Cannot set a component if its index does not exist
+    if((componentIndex <= CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (componentIndex >= componentsList.size()))
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchIn] componentIndex " + componentIndex + " is out of bounds (componentsList size " + componentsList.size() + ") => failed to unpatch in");
+      }
+      return false;
+    }
+    
+    //Work with reference to the component because we will use it several times
+    SynthComponent sc = getSynthComponent(componentIndex); //(componentIndex == CustomInstrument_CONSTANTS.KEYBOARD_INDEX) ? keyboard : (componentIndex == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX) ? toAudioOutput : componentsList.get(componentIndex);
+    
+    //Cannot set the patchIn if it does not exist, the accessor would return null
+    if(sc.getPatchIn(patchinIndex) == null)
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchIn] patchinIndex " + patchinIndex + " is out of bounds for componentIndex " + componentIndex + " => failed to unpatch in");
+      }
+      return false;
+    }
+    
+    //Also cannot unplug into a patch if it already lacks a plugged-in cable
+    if(sc.getCableIn(patchinIndex) == null)
+    {
+      if(DEBUG_INTERFACE_PATCH)
+      {
+        println("[unsetPatchIn] patchinIndex " + patchinIndex + " is already unused for componentIndex " + componentIndex + " => failed to unpatch in");
+      }
+      return false;
+    }
+    
+    //Removing patch in keyboard case because it is not cloned---awkwardly, there are no patch-ins on the keyboard (so dead code for now)
+    if(sc == keyboard)
+    {
+      //Iterate over all the patch cable clones currently plugged in and set the patchOut to null
+      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableIn(Keyboard_CONSTANTS.PATCHOUT_KEY0));
+      
+      for(int i = 0; i < Keyboard_CONSTANTS.TOTAL_PATCHIN; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[unsetPatchIn] patchinIndex " + i + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchIn method also stores itself in the synth component
+        pcClone[i].setPatchIn(null, -1);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful unpatch in? pcClone[" + i + "] plugs into " + pcClone[i].getPatchInComponent() + ", index " + pcClone[i].getPatchInIndex());
+        }
+      }
+    }
+    //For non-keyboard, including the instrumet mixer because it is cloned
+    else
+    {
+      //Iterate over all the clones (first clone is the original sc and the patch cable plugged into it) and set the patchIn to null
+      SynthComponent[] scClone = polyphonicCompClones.get(sc);
+      PatchCable[] pcClone = polyphonicPatchClones.get(sc.getCableIn(patchinIndex));
+    
+      for(int i = 0; i < scClone.length; i++)
+      {
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("[unsetPatchIn] patchinIndex " + patchinIndex + " of component clone " + i + " (" + scClone[i] + ") will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+        }
+        
+        //The patch cable's setPatchIn method also stores itself in the synth component
+        pcClone[i].setPatchIn(null, -1);
+        
+        if(DEBUG_INTERFACE_PATCH)
+        {
+          println("\t => successful unpatch in? pcClone[" + i + "] plugs into " + pcClone[i].getPatchInComponent() + ", index " + pcClone[i].getPatchInIndex());
         }
       }
     }
