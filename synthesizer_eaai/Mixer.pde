@@ -1,7 +1,7 @@
 /*Mixer.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 29
+Last Updated: 2022 January 01
 
 Class for a mixer component within a synthesized instrument.
 This component simply merges wave inputs to allow all of them in a single output.
@@ -507,6 +507,7 @@ public class MixerInstrument extends SynthComponent
     //As the lowest layer of the GUI image for the component,
     //  render the component's box as a rectangle (rather than a component, fills lower border)
     stroke(0, 0, 0); //Black stroke
+    strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     fill(128, 128, 128); //light-grey fill
     rect(xOffset, yOffset, Render_CONSTANTS.RIGHT_BORDER_WIDTH, Render_CONSTANTS.RIGHT_BORDER_HEIGHT - Render_CONSTANTS.UPPER_BORDER_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT);
     

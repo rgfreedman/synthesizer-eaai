@@ -1,7 +1,7 @@
 /*SynthComponent.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2022 January 01
 
 Class for a component within a synthesized instrument.  This is a superclass with the
 most basic features in all components (UI elements, knobs, patch and gate in/out, etc.).
@@ -159,6 +159,7 @@ public abstract class SynthComponent
     //  render the component's box as a rectangle
     stroke(0, 0, 0); //Black stroke
     fill(128, 128, 128); //light-grey fill
+    strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     rect(xOffset, yOffset, Render_CONSTANTS.COMPONENT_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT);
     
     //All text should be centered about the specified (x,y) coordinates per text() call

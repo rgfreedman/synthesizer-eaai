@@ -1,7 +1,7 @@
 /*Keyboard.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 27
+Last Updated: 2022 January 01
 
 Class for a keyboard component within a synthesized instrument.
 This component sends frequency information for a pressed key that can act as dynamic
@@ -145,6 +145,7 @@ public class Keyboard extends SynthComponent
     //As the lowest layer of the GUI image for the component,
     //  render the component's box as a rectangle (rather than a component, fills lower border)
     stroke(0, 0, 0); //Black stroke
+    strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     fill(128, 128, 128); //light-grey fill
     rect(xOffset, yOffset, Render_CONSTANTS.LOWER_BORDER_WIDTH, Render_CONSTANTS.LOWER_BORDER_HEIGHT);
     

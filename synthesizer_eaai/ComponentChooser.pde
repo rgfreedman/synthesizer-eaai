@@ -78,6 +78,7 @@ public class ComponentChooser extends SynthComponent
     //As the lowest layer of the GUI image for the component,
     //  render the component's box as a rectangle
     stroke(0, 0, 0); //Black stroke
+    strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     fill(128, 128, 128); //light-grey fill
     rect(xOffset, yOffset, Render_CONSTANTS.COMPONENT_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT);
     
