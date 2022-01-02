@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 31
+Last Updated: 2022 January 01
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -25,6 +25,21 @@ public static class CustomInstrument_CONSTANTS
   public static final int MIXERINSTRUMENT_INDEX = KEYBOARD_INDEX - 1;
   //This means checking for a bad component is not as simple as < 0, making it the next offset index
   public static final int NO_SUCH_INDEX = MIXERINSTRUMENT_INDEX - 1;
+  
+  //Constants for SynthComponent class IDs, both as strings and integers
+  public static final int SYNTHCOMP_ENVGEN_ID = 0;
+  public static final int SYNTHCOMP_LFO_ID = SYNTHCOMP_ENVGEN_ID + 1;
+  public static final int SYNTHCOMP_MIX1_8_ID = SYNTHCOMP_LFO_ID + 1;
+  public static final int SYNTHCOMP_MIX4_2_ID = SYNTHCOMP_MIX1_8_ID + 1;
+  public static final int SYNTHCOMP_MULT1_8_ID = SYNTHCOMP_MIX4_2_ID + 1;
+  public static final int SYNTHCOMP_MULT2_4_ID = SYNTHCOMP_MULT1_8_ID + 1;
+  public static final int SYNTHCOMP_NOISEGEN_ID = SYNTHCOMP_MULT2_4_ID + 1;
+  public static final int SYNTHCOMP_POWER_ID = SYNTHCOMP_NOISEGEN_ID + 1;
+  public static final int SYNTHCOMP_VCA_ID = SYNTHCOMP_POWER_ID + 1;
+  public static final int SYNTHCOMP_VCF_ID = SYNTHCOMP_VCA_ID + 1;
+  public static final int SYNTHCOMP_VCO_ID = SYNTHCOMP_VCF_ID + 1;
+  public static final int TOTAL_SYNTHCOMP = SYNTHCOMP_VCO_ID + 1;
+  public static final String[] SYNTHCOMP_LABELS = {"ENVGEN", "LFO", "MIX1_8", "MIX4_2", "MULT1_8", "MULT2_4", "NOISEGEN", "POWER", "VCA", "VCF", "VCO"};
 }
 
 public class CustomInstrument implements Instrument
@@ -45,6 +60,9 @@ public class CustomInstrument implements Instrument
   //The other exception is the instrument's mixer, also included as a default component outside the list
   private MixerInstrument toAudioOutput;
   
+  //A menu that will appear to enable selecting components for adding instruments
+  private ComponentChooser chooser;
+  
   //In order to capture polyphony (simultaneous keyboard notes at once), need copies of
   //  the instrument, each using a unique keyboard out patch
   //This means we need to apply changes in the instrument across all copies; synced via a map
@@ -63,6 +81,9 @@ public class CustomInstrument implements Instrument
     
     //Initialize the instrument's mixer so that there is a connection to the audio output
     toAudioOutput = new MixerInstrument();
+    
+    //Initialize the menu for listing components that could be added
+    chooser = new ComponentChooser();
     
     //Initialize the polyphonic clone data structure, which will interact with the keyboard
     polyphonicCompClones = new HashMap();
@@ -183,6 +204,12 @@ public class CustomInstrument implements Instrument
         xOffset += Render_CONSTANTS.COMPONENT_WIDTH;
       }
     }
+    //Special case: render a chooser menu when there is room for another component
+    //  and the list is exhausted (loop computed the next xOffset and yOffset before exiting)
+    if(componentsList.size() < Render_CONSTANTS.MAX_SYNTH_COMPONENTS)
+    {
+      chooser.render(xOffset, yOffset);
+    }
     
     //The keyboard is standalone => call its render separately
     if(keyboard != null)
@@ -236,9 +263,15 @@ public class CustomInstrument implements Instrument
         if(Render_CONSTANTS.rect_contains_point(Render_CONSTANTS.LEFT_BORDER_WIDTH + (c * Render_CONSTANTS.COMPONENT_WIDTH), Render_CONSTANTS.UPPER_BORDER_HEIGHT + (r * Render_CONSTANTS.COMPONENT_HEIGHT), Render_CONSTANTS.COMPONENT_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT, x, y))
         {
           //If that component actually does not exist, then make sure null is returned
-          if(((r * Render_CONSTANTS.TILE_HORIZ_COUNT) + c) >= componentsList.size())
+          if(((r * Render_CONSTANTS.TILE_HORIZ_COUNT) + c) > componentsList.size())
           {
             return null;
+          }
+          //If that component is one component outside the list, then it is the menu to choose a component
+          //  Do not need to check Render_CONSTANTS.MAX_SYNTH_COMPONENTS here since the HORIZ and VERT limits enforce it
+          else if(((r * Render_CONSTANTS.TILE_HORIZ_COUNT) + c) == componentsList.size())
+          {
+            return chooser;
           }
           else
           {
@@ -270,6 +303,12 @@ public class CustomInstrument implements Instrument
     {
       return CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX;
     }
+    //Special case of the chooser menu for components (not in componentsList)
+    //  NOTE: Only allow the chooser to be selectable when there is room to add another component
+    if((chooser == sc) && (componentsList.size() < Render_CONSTANTS.MAX_SYNTH_COMPONENTS))
+    {
+      return componentsList.size();
+    }
     
     for(int i = 0; i < componentsList.size(); i++)
     {
@@ -296,6 +335,12 @@ public class CustomInstrument implements Instrument
     if(index == CustomInstrument_CONSTANTS.MIXERINSTRUMENT_INDEX)
     {
       return toAudioOutput;
+    }
+    //Special case of the chooser menu for components (not in componentsList)
+    //  NOTE: Only allow the chooser to be selectable when there is room to add another component
+    if((index == componentsList.size()) && (componentsList.size() < Render_CONSTANTS.MAX_SYNTH_COMPONENTS))
+    {
+      return chooser;
     }
     
     //General case returns the component at the specified index if within bounds
@@ -430,6 +475,162 @@ public class CustomInstrument implements Instrument
   //For polyphonic purposes, create a synth component's clones all at once when setting up
   //  Each has an input parameter for the component
   //  Each returns a boolean, which is false when there are no more synth component slots
+  //This version takes a label for the component name (should match one in CustomInstrument_CONSTANTS.SYNTHCOMP_LABELS
+  public boolean addSynthComponent(String scLabel)
+  {
+    //No idea whether the IDs correspond to lexical ordering of the labels... use a linear search
+    int componentID = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+    for(int i = 0; i < CustomInstrument_CONSTANTS.SYNTHCOMP_LABELS.length; i++)
+    {
+      if(scLabel.equals(CustomInstrument_CONSTANTS.SYNTHCOMP_LABELS[i]))
+      {
+        componentID = i;
+        break;
+      }
+    }
+    //Make sure the ID for the label was found first; otherwise the add failed
+    if(componentID == CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+    {
+      return false;
+    }
+    return addSynthComponent(componentID);
+  }
+  //This version takes an ID for the component class (should match one in CustomInstrument_CONSTANTS.SYNTHCOMP_X_ID
+  public boolean addSynthComponent(int scID)
+  {
+    switch(scID)
+    {
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_ENVGEN_ID:
+        try
+        {
+          addSynthComponent(new EnvelopeGenerator());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding EnvelopeGenerator to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_LFO_ID:
+        try
+        {
+          addSynthComponent(new LFO());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding LFO to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_MIX1_8_ID:
+        try
+        {
+          addSynthComponent(new Mixer8to1());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding Mixer8to1 to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_MIX4_2_ID:
+        try
+        {
+          addSynthComponent(new Mixer4to2());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding Mixer4to2 to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_MULT1_8_ID:
+        try
+        {
+          addSynthComponent(new Multiples1to8());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding Multiples1to8 to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_MULT2_4_ID:
+        try
+        {
+          addSynthComponent(new Multiples2to4());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding Multiples2to4 to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_NOISEGEN_ID:
+        try
+        {
+          addSynthComponent(new NoiseGenerator());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding NoiseGenerator to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_POWER_ID:
+        try
+        {
+          addSynthComponent(new Power());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding Power to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_VCA_ID:
+        try
+        {
+          addSynthComponent(new VCA());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding VCA to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_VCF_ID:
+        try
+        {
+          addSynthComponent(new VCF());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding VCF to instrument via ID " + scID);
+        }
+        break;
+      case CustomInstrument_CONSTANTS.SYNTHCOMP_VCO_ID:
+        try
+        {
+          addSynthComponent(new VCO());
+        }
+        //This should not occur since the SynthComponent class is legal, but one can never be too safe with potential bugs and future code changes
+        catch(Exception e)
+        {
+          System.out.println("ERROR: " + e + "\n\tWhen adding VCO to instrument via ID " + scID);
+        }
+        break;
+      //If no matching component ID, then failed to add it
+      default:
+        return false;
+    }
+    //At this point, non-default cases reach here, successfully added component
+    return true;
+  }
+  //This one adds an actual SynthComponent object and generates the clones
+  //  Some SynthComponent classes are not allowed in the instrument's components list, and these will throw an error
+  //NOTE: Use the String and int versions above to avoid the error since they restrict the available components
   public boolean addSynthComponent(SynthComponent sc) throws Exception
   {
     //Do not continue any further if out of synth components
@@ -448,7 +649,12 @@ public class CustomInstrument implements Instrument
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY1; i < scClones.length; i++)
     {
       //NOTE: Need to prepare additional cases if more SynthComponent subclasses are ever made!
-      if(sc instanceof EnvelopeGenerator)
+      if(sc instanceof ComponentChooser)
+      {
+        //Yet another exception to the rule... component choosers should be unique and external to this portion
+        throw new Exception("Cannot include a ComponentChooser or its subclass (" + sc.getClass() + ") in instrument");
+      }
+      else if(sc instanceof EnvelopeGenerator)
       {
         scClones[i] = new EnvelopeGenerator();
       }

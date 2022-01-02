@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 31
+Last Updated: 2022 January 01
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -35,10 +35,10 @@ int mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index o
 
 //Constant used to toggle debug modes
 //NOTE: "Dead code" warnings below when checking for multiple debug flags are expected because of lazy Boolean evaluation
-public final boolean DEBUG_SYSTEM = true; //For general procedural stuff, like control flow
+public final boolean DEBUG_SYSTEM = false; //For general procedural stuff, like control flow
 public final boolean DEBUG_INTERFACE_KNOB = false; //For testing interfacing (defined below) with the knob
-public final boolean DEBUG_INTERFACE_PATCH = true; //For testing interfacing (defined below) with the patches
-public final boolean DEBUG_INTERFACE_MOUSE = true; //For testing interfacing (definted below) with the mouse
+public final boolean DEBUG_INTERFACE_PATCH = false; //For testing interfacing (defined below) with the patches
+public final boolean DEBUG_INTERFACE_MOUSE = false; //For testing interfacing (definted below) with the mouse
 public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH || DEBUG_INTERFACE_MOUSE; //For testing interfacing features (GUI, set values via I/O-related function calls)
 
 void setup()
@@ -71,6 +71,11 @@ void setup()
   {
     setupDebugInstrument();
   }
+  //When no instrument debugging, then need a fresh, empty instrument to get started
+  else
+  {
+    setupBlankInstrument();
+  }
 }
 
 void draw()
@@ -90,6 +95,13 @@ void draw()
   {
     instruments.get(currentInstrument).render();
   }
+}
+
+//Used to setup a blank custom instrument with no preloaded features
+private void setupBlankInstrument()
+{
+  instruments.add(new CustomInstrument());
+  currentInstrument = 0; //Set the instrument on screen to be the current one
 }
 
 //When the user presses a mouse button, determine whether it relates to some action on the screen
@@ -134,9 +146,31 @@ void mousePressed()
         mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus);
       }
       
+      //When the focus element is a ComponentChooser object, then special case to add a component
+      if(focus instanceof ComponentChooser)
+      {
+        //Compute the Component ID, which should correlate with the patch indeces
+        int componentID = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+        if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+        {
+          componentID = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+        }
+        else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+        {
+          componentID = ComponentChooser_CONSTANTS.TOTAL_PATCHIN + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+        }
+        //If the ID exists, then add the corresponding component
+        if(componentID > CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+        {
+          mouseAddComponent(mouseTargetInstrumentIndex, componentID);
+        }
+        //We will not need the mouseTarget indeces after creating the component
+        mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+        mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+      }
       //When the press is on a knob, identify the position of the cursor over the knob's
       //  width to set the value---also store the information for any dragging until mouse release
-      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB)
+      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB)
       {
         mouseTargetKnobIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
         if(DEBUG_INTERFACE_MOUSE)
@@ -145,6 +179,8 @@ void mousePressed()
         }
         mouseAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex);
       }
+      //When the press is on an input patch, either create or readjust the patch cable---
+      //  also store the information until mouse release to complete the patch
       else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
       {
         if(DEBUG_INTERFACE_MOUSE)
@@ -180,6 +216,8 @@ void mousePressed()
           instruments.get(currentInstrument).unsetPatchIn(mousePrevComponentIndex, mousePrevPatchInIndex);
         }
       }
+      //When the press is on an output patch, either create or readjust the patch cable---
+      //  also store the information until mouse release to complete the patch
       else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
       {
         if(DEBUG_INTERFACE_MOUSE)
@@ -630,7 +668,7 @@ void mouseRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIn
     return;
   }
   
-  //Simply set the specified output patch cable, using the cable specified in From
+  //Simply remove the patch cable with specified output
   instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableOut(patchOutIndex));
 }
 
@@ -647,8 +685,22 @@ void mouseRemovePatchIn(int instrumentIndex, int componentIndex, int patchInInde
     return;
   }
   
-  //Simply set the specified output patch cable, using the cable specified in From
+  //Simply remove the patch cable with specified input
   instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableIn(patchInIndex));
+}
+
+//Adds a component to the instrument
+void mouseAddComponent(int instrumentIndex, int componentID)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null))
+  {
+    return;
+  }
+  
+  //Simply add the specified component
+  instruments.get(instrumentIndex).addSynthComponent(componentID);
 }
 
 //Due to closing with the global Summer's patch still active, we force the unpatch before quitting the application
