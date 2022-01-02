@@ -525,8 +525,13 @@ void mouseClicked()
         mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus);
       }
       
+      //When the reove button is identified, then remove the associated component from the instrument
+      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_REMOVE)
+      {
+        mouseRemoveComponent(mouseTargetInstrumentIndex, mouseTargetComponentIndex);
+      }
       //When a patch is identified with an existing cable, then remove it from the instrument
-      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
@@ -558,7 +563,7 @@ void mouseClicked()
           mouseRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
         }
       }
-      //Since the removal of patches is a one-and-done operation, release the focus indeces
+      //Since the removal of components and patches is a one-and-done operation, release the focus indeces
       mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
       mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     }
@@ -709,6 +714,21 @@ void mouseAddComponent(int instrumentIndex, int componentID)
   
   //Simply add the specified component
   instruments.get(instrumentIndex).addSynthComponent(componentID);
+}
+
+//Removes a component from the instrument
+void mouseRemoveComponent(int instrumentIndex, int componentIndex)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null))
+  {
+    return;
+  }
+  
+  //Simply remove the specified component
+  instruments.get(instrumentIndex).removeSynthComponent(componentIndex);
 }
 
 //Due to closing with the global Summer's patch still active, we force the unpatch before quitting the application

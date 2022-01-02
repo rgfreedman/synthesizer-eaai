@@ -724,11 +724,90 @@ public class CustomInstrument implements Instrument
     return true;
   }
   
+  //For polyphonic purposes, remove a synth component's clones all at once when deleting
+  //  Each has an input parameter for the component
+  //  Each returns a boolean, which is false when the specified component does not exist to remove
+  //This one removes an actual SynthComponent object and all the respective clones
+  //  Some SynthComponent objects are not allowed in the instrument's components list, and these will also return false
+  public boolean removeSynthComponent(SynthComponent sc)
+  {
+    //Return false if no synth component provided
+    if(sc == null)
+    {
+      return false;
+    }
+    
+    //Need the index of the component to call the fleshed out remove command
+    int scIndex = findSynthComponentIndex(sc);
+    
+    //Do not continue any further if not included in the list of synth components
+    //NOTE: This captures the unique components like keyboard, intrument's mixer, and component chooser
+    if((scIndex < 0) || (scIndex >= componentsList.size()))
+    {
+      return false;
+    }
+    else
+    {
+      return removeSynthComponent(scIndex);
+    }
+  }
+  public boolean removeSynthComponent(int scIndex)
+  {
+    //First, get the respective synth component after checking for its existence
+    if((scIndex < 0) || (scIndex >= componentsList.size()))
+    {
+      return false;
+    }
+    SynthComponent sc = getSynthComponent(scIndex);
+    
+    //Return false if no synth component at the specified index
+    if(sc == null)
+    {
+      return false;
+    }
+    
+    //Retrieve the clones since they are mapped together
+    SynthComponent[] scClones = polyphonicCompClones.get(sc);
+    
+    //Now delete the clones as an array and remove the mapping
+    for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < scClones.length; i++)
+    {
+      //First, remove all the patches that plug into the component
+      for(int j = 0; j < scClones[i].getTotalPatchIn(); j++)
+      {
+        //NOTE: This handles the null cable case by returning false and not removing anything
+        removePatchCable(scClones[i].getCableIn(j));
+      }
+      for(int j = 0; j < scClones[i].getTotalPatchOut(); j++)
+      {
+        //NOTE: This handles the null cable case by returning false and not removing anything
+        removePatchCable(scClones[i].getCableOut(j));
+      }
+      
+      //Now safe to forget about this array pointer (for the garbage collector)
+      scClones[i] = null;
+    }
+    //Remove the mapping to leave stuff available for the garbage collector
+    polyphonicCompClones.remove(sc);
+    
+    //Remove the component from the list as well
+    componentsList.remove(scIndex);
+    
+    //By this point, the removal was successful
+    return true;
+  }
+  
   //For polyphonic purposes, create a patch cable's clones all at once when setting up
   //  Each has an input parameter for the patch cable
-  //  Due to limitless patches, returns true only
+  //  Due to limitless patches, returns false only if the patch cable is null
   public boolean addPatchCable(PatchCable pc)
   {
+    //Return false if no patch cable provided
+    if(pc == null)
+    {
+      return false;
+    }
+    
     //Append the component to the list
     patchesList.add(pc);
     
@@ -754,15 +833,21 @@ public class CustomInstrument implements Instrument
       setPatchOut(findSynthComponentIndex(pc.getPatchOutComponent()), pc.getPatchOutIndex(), pc);
     }
     
-    //We will reach this point no matter what, but follow suit of cloning synth components
+    //We will reach this point no matter what unless pc was null, but follow suit of cloning synth components
     return true;
   }
   
   //For polyphonic purposes, remove a patch cable's clones all at once when deleting
   //  Each has an input parameter for the patch cable
-  //  Due to limitless patches, returns true only
+  //  Returns false if the patch is null or not included in the instrument
   public boolean removePatchCable(PatchCable pc)
   {
+    //Return false if no patch cable provided
+    if((pc == null) || (!patchesList.contains(pc)))
+    {
+      return false;
+    }
+    
     //If the provided patch cable already set its in-patch or out-patch, then remove across the clones
     if(pc.getPatchInComponent() != null)
     {
@@ -785,7 +870,7 @@ public class CustomInstrument implements Instrument
     //Delete the component from the list
     patchesList.remove(pc);
     
-    //We will reach this point no matter what, but follow suit of removing synth components
+    //By this point, removal was successful
     return true;
   }
   

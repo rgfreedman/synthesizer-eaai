@@ -70,9 +70,9 @@ public class ComponentChooser extends SynthComponent
     //Nothing here yet, knob updates are now done in Knob class (as they should)
   }
   
+  //NOTE: This overrides SynthComponent's render simply by allowing a null patch/knob to be drawn and ignoring the remove button...
   //Renders the component, accounting for spacing of patch holes, knobs, and the labels
   //NOTE: Renders locally (within the component's rectangle); need global coordinates for offset
-  //NOTE: This overrides SynthComponent's render simply by allowing a null patch/knob to be drawn...
   public void render(int xOffset, int yOffset)
   {
     //As the lowest layer of the GUI image for the component,
@@ -152,5 +152,71 @@ public class ComponentChooser extends SynthComponent
       //Unlike the ellipse, these are the top-left corner of the rectangle
       knobs[i].render(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2) - (Render_CONSTANTS.KNOB_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)));
     }
+  }
+  
+  //NOTE: This overrides SynthComponent's getElementAt simply by allowing a null patch/knob to be drawn and ignoring the remove button...
+  //Reverse engineering of the rendering process to identify the focus
+  //  (what element [patch hole or knob] is at some pixel location)
+  //Output format is a length-2 integer array: [element_type, index]
+  //NOTE: The output format will have some helpful magic numbers defined in Render_CONSTANTS
+  //NOTE: The inputs x and y are relative to the top-left corner of this SynthComponent
+  public int[] getElementAt(int x, int y)
+  {
+    //Setup the output array first, fill in just before returning (set to default, the "null")
+    int[] toReturn = new int[Render_CONSTANTS.SYNTHCOMPONENT_TOTAL_FOCUS];
+    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE;
+    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = Render_CONSTANTS.INVALID_VALUE;
+    
+    //Before starting, return nothing relevant if outside the bounds of the component
+    if((x < 0) || (x >= Render_CONSTANTS.COMPONENT_WIDTH) || (y < 0) || (y >= Render_CONSTANTS.COMPONENT_HEIGHT))
+    {
+      return toReturn;
+    }
+    
+    //First, consider the point being aligned with some in patch
+    if(patchIn != null)
+    {
+      for(int i = 0; i < patchIn.length; i++)
+      {
+        //The patch is just a circle
+        if(Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.COMPONENT_WIDTH / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
+        {
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN;
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
+          return toReturn;
+        }
+      }
+    }
+    //Second, consider the point being aligned with some knob
+    if(knobs != null)
+    {
+      for(int i = 0; i < knobs.length; i++)
+      {
+        //Because the knob can locally check the point for containment, set the top-left for containment
+        if((knobs[i] != null) && knobs[i].contains_point(x - ((Render_CONSTANTS.COMPONENT_WIDTH / 2) - (Render_CONSTANTS.KNOB_WIDTH / 2)), y - (Render_CONSTANTS.KNOB_HEIGHT + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)))))
+        {
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB;
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
+          return toReturn;
+        }
+      }
+    }
+    //Third, consider the point being aligned with some out patch
+    if(patchOut != null)
+    {
+      for(int i = 0; i < patchOut.length; i++)
+      {
+        //The patch is just a circle
+        if(Render_CONSTANTS.circ_contains_point((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
+        {
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT;
+          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
+          return toReturn;
+        }
+      }
+    }
+    
+    //At this point, the point did not fit into any elements => return nothing
+    return toReturn;
   }
 }

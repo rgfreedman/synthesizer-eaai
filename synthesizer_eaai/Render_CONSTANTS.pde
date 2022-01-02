@@ -1,7 +1,7 @@
 /*Render_CONSTANTS.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 30
+Last Updated: 2022 January 01
 
 Class for constants that affect rendering components on the screen; edit the assigned
 values to alter how things display on the screen.
@@ -40,6 +40,7 @@ public static class Render_CONSTANTS
   public static final int MAX_SYNTH_COMPONENTS = TILE_HORIZ_COUNT * TILE_VERT_COUNT;
   
   //An assumed limit to the number of in-patches, knobs, or out-patches in a single component
+  //NOTE: These are not enforced, but used in computations for other constants below
   public static final int MAX_IN_PATCH = 9;
   public static final int MAX_OUT_PATCH = MAX_IN_PATCH;
   public static final int MAX_KNOB = 9;
@@ -55,6 +56,10 @@ public static class Render_CONSTANTS
   public static final int PATCH_RADIUS = PATCH_DIAMETER / 2;
   public static final int KNOB_WIDTH = (COMPONENT_WIDTH * 2) / 5;
   public static final int KNOB_HEIGHT = min(COMPONENT_HEIGHT / (2 * (MAX_KNOB + 1)), COMPONENT_WIDTH / 4);
+  
+  //Size of remove button that appears on some components (to delete them)
+  public static final int REMOVEBUTTON_WIDTH = COMPONENT_WIDTH;
+  public static final int REMOVEBUTTON_HEIGHT = min(COMPONENT_HEIGHT - (int)(PATCH_DIAMETER * ((MAX_IN_PATCH * 2) + 1.5)), COMPONENT_HEIGHT / 10);
   
   //Size of patch cable parts (filling of hole and cord thickness)
   public static final int PATCH_PLUG_DIAMETER = max((PATCH_DIAMETER * 7) / 8, 5);
@@ -108,7 +113,8 @@ public static class Render_CONSTANTS
   public static final int SYNTHCOMPONENT_ELEMENT_PATCHIN = SYNTHCOMPONENT_ELEMENT_NONE + 1;
   public static final int SYNTHCOMPONENT_ELEMENT_KNOB = SYNTHCOMPONENT_ELEMENT_PATCHIN + 1;
   public static final int SYNTHCOMPONENT_ELEMENT_PATCHOUT = SYNTHCOMPONENT_ELEMENT_KNOB + 1;
-  public static final int SYNTHCOMPONENT_TOTAL_ELEMENT = SYNTHCOMPONENT_ELEMENT_PATCHOUT + 1;
+  public static final int SYNTHCOMPONENT_ELEMENT_REMOVE = SYNTHCOMPONENT_ELEMENT_PATCHOUT + 1;
+  public static final int SYNTHCOMPONENT_TOTAL_ELEMENT = SYNTHCOMPONENT_ELEMENT_REMOVE + 1;
   //Actual indeces in the output format that define the focus
   public static final int SYNTHCOMPONENT_FOCUS_ELEMENT = 0;
   public static final int SYNTHCOMPONENT_FOCUS_INDEX = SYNTHCOMPONENT_FOCUS_ELEMENT + 1;

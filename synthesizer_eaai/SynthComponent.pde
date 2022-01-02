@@ -121,6 +121,20 @@ public abstract class SynthComponent
   public String getComponentName() {return componentName;}
   public String getUniqueName() {return uniqueName;}
   
+  //Accessors for the total number of patches, knobs, and cables
+  public int getTotalPatchIn()
+  {
+    return (patchIn == null) ? 0 : patchIn.length;
+  }
+  public int getTotalPatchOut()
+  {
+    return (patchOut == null) ? 0 : patchOut.length;
+  }
+  public int getTotalKnob()
+  {
+    return (knobs == null) ? 0 : knobs.length;
+  }
+  
   //Mutator for the unique name only (component name should not be changed outside its constructor setting)
   public void setUniqueName(String n) {uniqueName = n;}
   
@@ -247,6 +261,13 @@ public abstract class SynthComponent
         knobs[i].render(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH / 2) - (Render_CONSTANTS.KNOB_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)));
       }
     }
+    
+    //Lastly, render the remove button as a simple, red, labeled rectangle at the bottom of the component
+    fill(128, 0, 0); //red color
+    stroke(0, 0, 0); //black stroke
+    rect(xOffset + (Render_CONSTANTS.COMPONENT_WIDTH - Render_CONSTANTS.REMOVEBUTTON_WIDTH), yOffset + (Render_CONSTANTS.COMPONENT_HEIGHT - Render_CONSTANTS.REMOVEBUTTON_HEIGHT), Render_CONSTANTS.REMOVEBUTTON_WIDTH, Render_CONSTANTS.REMOVEBUTTON_HEIGHT);
+    fill(255, 255, 255); //white to print label on button
+    text("Remove (Right Click Here)", xOffset + (Render_CONSTANTS.COMPONENT_WIDTH - Render_CONSTANTS.REMOVEBUTTON_WIDTH), yOffset + (Render_CONSTANTS.COMPONENT_HEIGHT - Render_CONSTANTS.REMOVEBUTTON_HEIGHT), Render_CONSTANTS.REMOVEBUTTON_WIDTH, Render_CONSTANTS.REMOVEBUTTON_HEIGHT);
   }
   
   //Reverse engineering of the rendering process to identify the focus
@@ -259,11 +280,20 @@ public abstract class SynthComponent
     //Setup the output array first, fill in just before returning (set to default, the "null")
     int[] toReturn = new int[Render_CONSTANTS.SYNTHCOMPONENT_TOTAL_FOCUS];
     toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE;
-    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = -1;
+    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = Render_CONSTANTS.INVALID_VALUE;
     
     //Before starting, return nothing relevant if outside the bounds of the component
     if((x < 0) || (x >= Render_CONSTANTS.COMPONENT_WIDTH) || (y < 0) || (y >= Render_CONSTANTS.COMPONENT_HEIGHT))
     {
+      return toReturn;
+    }
+    
+    //Before checking components, determine whether the remove button was clicked
+    //  This is a simple rectangle bounds check
+    if(Render_CONSTANTS.rect_contains_point(Render_CONSTANTS.COMPONENT_WIDTH - Render_CONSTANTS.REMOVEBUTTON_WIDTH, Render_CONSTANTS.COMPONENT_HEIGHT - Render_CONSTANTS.REMOVEBUTTON_HEIGHT, Render_CONSTANTS.REMOVEBUTTON_WIDTH, Render_CONSTANTS.REMOVEBUTTON_HEIGHT, x, y))
+    {
+      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_REMOVE;
+      //Remove button has no index to set
       return toReturn;
     }
     
@@ -273,7 +303,7 @@ public abstract class SynthComponent
       for(int i = 0; i < patchIn.length; i++)
       {
         //The patch is just a circle
-        if(Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.COMPONENT_WIDTH / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
+        if((patchIn[i] != null) && Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.COMPONENT_WIDTH / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
         {
           toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN;
           toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
@@ -301,7 +331,7 @@ public abstract class SynthComponent
       for(int i = 0; i < patchOut.length; i++)
       {
         //The patch is just a circle
-        if(Render_CONSTANTS.circ_contains_point((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
+        if((patchOut[i] != null) && Render_CONSTANTS.circ_contains_point((Render_CONSTANTS.COMPONENT_WIDTH * 7) / 8, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
         {
           toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT;
           toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
