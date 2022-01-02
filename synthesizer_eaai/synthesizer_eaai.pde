@@ -90,6 +90,14 @@ void draw()
     drawDebugInstrument();
   }
   
+  //Before rendering the current instrument, make sure all instruments have a chance to update their state
+  for(int i = 0; i < instruments.size(); i++)
+  {
+    if(instruments.get(currentInstrument) != null)
+    {
+      instruments.get(i).draw_update();
+    }
+  }
   //Draw on screen the instrument that is currently selected
   if((currentInstrument >= 0) && (currentInstrument < instruments.size()) && (instruments.get(currentInstrument) != null))
   {
