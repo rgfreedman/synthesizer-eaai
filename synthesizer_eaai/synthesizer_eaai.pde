@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 01
+Last Updated: 2022 January 02
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -11,6 +11,7 @@ import ddf.minim.*;
 import ddf.minim.ugens.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 //Create global variables that will need to be accessed in multiple methods
 private Minim minim; //Makes the Minum magic happen!
@@ -24,22 +25,41 @@ private ArrayList<CustomInstrument> instruments;
 private int currentInstrument = -1;
 
 //Some variables to share target/focus information over time/between frames (like a short-term memory)
-int mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of instrument with currently selected things via the mouse
-int mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of SynthComponent currently selected with the mouse
-int mouseTargetKnobIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of focused SynthComponent's currently selected knob with the mouse
-int mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable currently selected with the mouse
-int mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable currently selected with the mouse
-int mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of patch cable of focus's previous component to which it was plugged in
-int mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable of focus's previous patch entry to which it was plugged in
-int mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable of focus's previous patch entry to which it was plugged in
+private int mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of instrument with currently selected things via the mouse
+private int mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of SynthComponent currently selected with the mouse
+private int mouseTargetKnobIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of focused SynthComponent's currently selected knob with the mouse
+private int mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable currently selected with the mouse
+private int mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable currently selected with the mouse
+private int mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of patch cable of focus's previous component to which it was plugged in
+private int mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable of focus's previous patch entry to which it was plugged in
+private int mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable of focus's previous patch entry to which it was plugged in
 
 //Constant used to toggle debug modes
 //NOTE: "Dead code" warnings below when checking for multiple debug flags are expected because of lazy Boolean evaluation
 public final boolean DEBUG_SYSTEM = false; //For general procedural stuff, like control flow
 public final boolean DEBUG_INTERFACE_KNOB = false; //For testing interfacing (defined below) with the knob
 public final boolean DEBUG_INTERFACE_PATCH = false; //For testing interfacing (defined below) with the patches
-public final boolean DEBUG_INTERFACE_MOUSE = false; //For testing interfacing (definted below) with the mouse
-public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH || DEBUG_INTERFACE_MOUSE; //For testing interfacing features (GUI, set values via I/O-related function calls)
+public final boolean DEBUG_INTERFACE_MOUSE = false; //For testing interfacing (definted below) with the computer mouse
+public final boolean DEBUG_INTERFACE_KEYBOARD = true; //For testing interfacing (defined below) with the computer keyboard
+public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH || DEBUG_INTERFACE_MOUSE || DEBUG_INTERFACE_KEYBOARD; //For testing interfacing features (GUI, set values via I/O-related function calls)
+
+//Information about the MIDI numbers mapping to various piano keyboard keys and frequency information
+private int[] midiNum;
+private float[] midiFreq;
+private boolean[] midiNatural;
+private int[] midiKeyIndex; //Will mix with natural and halftone
+
+//Also need information about hands for key bindings with GUI
+public final int KEYS_PER_OCTAVE = 12;
+public final int KEYS_PER_HAND = KEYS_PER_OCTAVE + 1; //Allows whole octave (sorry, no ninths or tenths with the limited keys avaiable...)
+public final char[] HALFTONE_KEYS_LEFT = {'q', 'w', 'e', 'r', 't'}; //Assign left hand's halftone keys in this order... assumes a QWERTY keyboard (sorry!)
+public final char[] NATURAL_KEYS_LEFT = {'a', 'z', 's', 'x', 'd', 'c', 'f', 'v'}; //Assign left hand's natural keys in this order... assumes a QWERTY keyboard (sorry!)
+public final char[] HALFTONE_KEYS_RIGHT = {'y', 'u', 'i', 'o', 'p'}; //Assign right hand's halftone keys in this order... assumes a QWERTY keyboard (sorry!)
+public final char[] NATURAL_KEYS_RIGHT = {'j', 'm', 'k', ',', 'l', '.', ';', '/'}; //Assign right hand's natural keys in this order... assumes a QWERTY keyboard (sorry!)
+public final boolean LEFT_HAND = true;
+public final boolean RIGHT_HAND = !LEFT_HAND;
+private int left_hand_curIndex = 0; //Starts at left pinky
+private int right_hand_curIndex = 0; //Starts at right thumb
 
 void setup()
 {
@@ -76,6 +96,15 @@ void setup()
   {
     setupBlankInstrument();
   }
+  
+  //Initialize all the MIDI information for the keyboard
+  setupMIDIarrays();
+  
+  //Now there is enough information to bind the keys to the keyboard, if a keyboard exists
+  left_hand_curIndex = 0;
+  right_hand_curIndex = Render_CONSTANTS.KEYBOARD_KEYS_TOTAL - KEYS_PER_HAND; //This is a natural key, and will have one key off the keyboard bounds
+  realignKeyboard(LEFT_HAND, left_hand_curIndex);
+  realignKeyboard(RIGHT_HAND, right_hand_curIndex);
 }
 
 void draw()
@@ -111,6 +140,149 @@ private void setupBlankInstrument()
   instruments.add(new CustomInstrument());
   currentInstrument = 0; //Set the instrument on screen to be the current one
 }
+
+//Used to run the MIDI-related arrays setup (to avoid setup itself being too messy)
+//CITE: Based on https://newt.phys.unsw.edu.au/jw/notes.html 's figure https://newt.phys.unsw.edu.au/jw/graphics/notes.GIF
+private void setupMIDIarrays()
+{
+  midiNum = new int[Render_CONSTANTS.KEYBOARD_KEYS_TOTAL];
+  //MIDI starts at number 21 for A0, up to 108 (C8) when mapped to physical keyboard
+  for(int i = 0; i < midiNum.length; i++)
+  {
+    midiNum[i] = i + 21; //This makes 0~87 become 21~108 as desired
+  }
+  
+  midiFreq = new float[Render_CONSTANTS.KEYBOARD_KEYS_TOTAL];
+  //Frequency of A0 is 27.5 Hz, and each half-step note is 2^(1/12) times the previous
+  midiFreq[0] = 27.5;
+  for(int i = 1; i < midiFreq.length; i++)
+  {
+    midiFreq[i] = midiFreq[i - 1] * pow(2, 1.0 / 12.0);
+  }
+  
+  midiNatural = new boolean[Render_CONSTANTS.KEYBOARD_KEYS_TOTAL];
+  //Need to fill in whether a key is natural or halftone, which has a pattern per octave
+  //NOTE: The pattern is based off the Keyboard class's render function
+  java.util.Arrays.fill(midiNatural, Keyboard_CONSTANTS.NATURAL_KEY);
+  int halftoneOffset = midiNatural.length - 2; //Right-most key is natural, not halftone, which starts offset pattern at -2 rather than -1 (to avoid out-of-bounds error)
+  for(int i = 0; i < (Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL / Render_CONSTANTS.KEYBOARD_HALFTONE_OCTAVE); i++) //Per complete octave
+  {
+    halftoneOffset--; //No halftone key (enharmonic B = Cb), so just skips B
+    for(int j = 0; j < 3; j++) //3 halftone keys in a row
+    {
+      midiNatural[halftoneOffset] = Keyboard_CONSTANTS.HALFTONE_KEY;
+      halftoneOffset -= 2; //Alternates natural-halftone for Bb/A#, A, Ab/G#, G, Gb/F#, F, Fb/E
+    }
+    halftoneOffset--; //No halftone key (enharmonic E = Fb), so just skips E
+    for(int j = 0; j < 2; j++) //2 halftone keys in a row
+    {
+      midiNatural[halftoneOffset] = Keyboard_CONSTANTS.HALFTONE_KEY;
+      halftoneOffset -= 2; //Alternates natural-halftone for Eb/D#, D, Db/C#, C, Cb/B
+    }
+  }
+  //Just one halftone key leftover...
+  halftoneOffset--; //No halftone key (enharmonic B = Cb), so just skips B
+  midiNatural[halftoneOffset] = Keyboard_CONSTANTS.HALFTONE_KEY;
+  
+  midiKeyIndex = new int[Render_CONSTANTS.KEYBOARD_KEYS_TOTAL];
+  //Because the natural and halftone keys are operated separately in Keyboard class, need to map the global piano key index to these separate indeces
+  int nextNatural = 0;
+  int nextHalftone = 0;
+  for(int i = 0; i < midiKeyIndex.length; i++)
+  {
+    if(midiNatural[i] == Keyboard_CONSTANTS.NATURAL_KEY)
+    {
+      midiKeyIndex[i] = nextNatural;
+      nextNatural++;
+    }
+    else //if(midiNatural[i] == Keyboard_CONSTANTS.HALFTONE_KEY)
+    {
+      midiKeyIndex[i] = nextHalftone;
+      nextHalftone++;
+    }
+  }
+}
+
+//Aligns a hand with the keyboard bindings, assuming the bindings and instrument both exist
+//Returns a boolean for whether the assignment was successful (a.k.a. newIndex is in bounds and current instrument exists)
+public boolean realignKeyboard(boolean hand, int newIndex)
+{
+  //Make sure the newIndex value is valid (within bounds for at least one key on the hand)
+  if(((newIndex + KEYS_PER_HAND) < 0) || (newIndex >= Render_CONSTANTS.KEYBOARD_KEYS_TOTAL)
+     || (currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null)
+     || (instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
+  {
+    return false;
+  }
+  
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    println("Aligning keyboard with " + (hand ? "right":"left") + " hand at newIndex " + newIndex + " which is a " + (midiNatural[newIndex] ? "natural":"halftone") + " key");
+  }
+  
+  //Grab the keyboard for the upcoming calls to change annotations
+  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
+  
+  //First get the original index to ensure that the old key annotations are cleared
+  int prevIndex = (hand == LEFT_HAND) ? left_hand_curIndex : right_hand_curIndex;
+  
+  for(int i = prevIndex; i < (prevIndex + KEYS_PER_HAND); i++)
+  {
+    if((i < 0) || (i >= midiNatural.length)) {continue;} //Skip if out-of-bounds
+    k.set_annotation(midiNatural[i], midiKeyIndex[i], "");
+  }
+  
+  //Now setup the new annotation and assigned keys based on the given hand
+  char[] naturalKeys;
+  char[] halftoneKeys;
+  
+  if(hand == LEFT_HAND)
+  {
+    left_hand_curIndex = newIndex;
+    naturalKeys = NATURAL_KEYS_LEFT;
+    halftoneKeys = HALFTONE_KEYS_LEFT;
+  }
+  else if(hand == RIGHT_HAND)
+  {
+    right_hand_curIndex = newIndex;
+    naturalKeys = NATURAL_KEYS_RIGHT;
+    halftoneKeys = HALFTONE_KEYS_RIGHT;
+  }
+  //This should be dead code, but never hurts to be safe
+  else
+  {
+    return false;
+  }
+  
+  //Assign the updated labels as annotations to the keyboard
+  int nextNaturalIndex = 0;
+  int nextHalftoneIndex = 0;
+  
+  for(int i = newIndex; i < (newIndex + KEYS_PER_HAND); i++)
+  {
+    if((i < 0) || (i >= midiNatural.length)) {continue;} //Skip if out-of-bounds
+    if(midiNatural[i] == Keyboard_CONSTANTS.NATURAL_KEY)
+    {
+      k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + naturalKeys[nextNaturalIndex]);
+      nextNaturalIndex++;
+    }
+    else if(midiNatural[i] == Keyboard_CONSTANTS.HALFTONE_KEY)
+    {
+      k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + halftoneKeys[nextHalftoneIndex]);
+      nextHalftoneIndex++;
+    }
+    //This should be dead code, but never hurts to be safe
+    else
+    {
+      return false;
+    }
+  }
+  
+  //By this point, the change was successful
+  return true;
+}
+
+/*---Functions for GUI interfacing (computer mouse and keyboard)---*/
 
 //When the user presses a mouse button, determine whether it relates to some action on the screen
 void mousePressed()
@@ -270,7 +442,7 @@ void mousePressed()
       }
     }
     //When no component is in the focus, then some extra functionality might exist in the
-    //  future to add a component, but nothing for now
+    //  future, but nothing for now
     else
     {
     }
@@ -492,6 +664,11 @@ void mouseReleased()
 //When the user clicks a mouse button (press and release), determine whether it relates to some action on the screen
 void mouseClicked()
 {
+  if(DEBUG_INTERFACE_MOUSE)
+  {
+    print("Mouse Clicked:\n");
+  }
+  
   //Alter processing the mouse press if there is no instrument with which to interact,
   //  such as loading an instrument (for now, just abort since no extra functionality)
   if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null))
@@ -503,6 +680,7 @@ void mouseClicked()
     return;
   }
   
+  //Right click will delete something if removable
   if(mouseButton == RIGHT)
   {
     //Identify the component of focus for the current instrument
@@ -568,9 +746,218 @@ void mouseClicked()
       mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     }
     //When no component is in the focus, then some extra functionality might exist in the
-    //  future to delete a component, but nothing for now
+    //  future, but nothing for now
     else
     {
+    }
+  }
+}
+
+//When the user presses a key, determine whether it relates to some action on the screen
+void keyPressed()
+{
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    print("Key Pressed:\n");
+  }
+  
+  //Alter processing the mouse press if there is no instrument with which to interact,
+  //  such as loading an instrument (for now, just abort since no extra functionality)
+  if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null))
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tNo instrument identified...\n");
+    }
+    return;
+  }
+  
+  //If the key is assigned to play a musical note (most lower/upper case and some punctuation), then start the assigned note
+  /*
+  if(playsnote(key))
+  {
+  }
+  */
+}
+
+//When the user types (presses and releases) a key, determine whether it relates to some action on the screen
+void keyTyped()
+{
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    print("Key Typed:\n");
+  }
+  
+  //Alter processing the mouse press if there is no instrument with which to interact,
+  //  such as loading an instrument (for now, just abort since no extra functionality)
+  if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null))
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tNo instrument identified...\n");
+    }
+    return;
+  }
+  
+  //If the key is assigned to shift the hand (remaining lower/upper case), then realign the labels and key bindings as appropriate
+  if(key == 'g') //Shift left hand left one natural key
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tg shifts left hand to the left one natural key...\n");
+    }
+    if((left_hand_curIndex > 0) && ((left_hand_curIndex - 1) < midiNatural.length) && (midiNatural[left_hand_curIndex - 1] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex - 1);
+    }
+    else if((left_hand_curIndex > 1) && ((left_hand_curIndex - 2) < midiNatural.length) && (midiNatural[left_hand_curIndex - 2] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex - 2);
+    }
+    //No need for an else case because this cannot shift left any further
+    else
+    {
+      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'G') //Shift left hand left four natural keys
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tG shifts left hand to the left four natural keys...\n");
+    }
+    if((left_hand_curIndex > 5) && ((left_hand_curIndex - 6) < midiNatural.length) && (midiNatural[left_hand_curIndex - 6] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex - 6);
+    }
+    else if((left_hand_curIndex > 6) && ((left_hand_curIndex - 7) < midiNatural.length) && (midiNatural[left_hand_curIndex - 7] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex - 7);
+    }
+    //No need for an else case because this cannot shift left any further
+    else
+    {
+      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'b') //Shift left hand right one natural key
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tb shifts left hand to the right one natural key...\n");
+    }
+    if(((left_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 1)) && ((left_hand_curIndex + 1) >= 0) && (midiNatural[left_hand_curIndex + 1] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex + 1);
+    }
+    else if(((left_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 2)) && ((left_hand_curIndex + 2) >= 0) && (midiNatural[left_hand_curIndex + 2] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex + 2);
+    }
+    //No need for an else case because this cannot shift right any further
+    else
+    {
+      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'B') //Shift left hand right four natural keys
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tg shifts left hand to the right four natural keys...\n");
+    }
+    if(((left_hand_curIndex + KEYS_PER_HAND) < (midiNatural.length - 6)) && ((left_hand_curIndex + 6) >= 0) && (midiNatural[left_hand_curIndex + 6] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex + 6);
+    }
+    else if(((left_hand_curIndex + KEYS_PER_HAND) < (midiNatural.length - 7)) && ((left_hand_curIndex + 7) >= 0) && (midiNatural[left_hand_curIndex + 7] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(LEFT_HAND, left_hand_curIndex + 7);
+    }
+    //No need for an else case because this cannot shift right any further
+    else
+    {
+      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'h') //Shift right hand left one natural key
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\th shifts right hand to the left one natural key...\n");
+    }
+    if((right_hand_curIndex > 0) && ((right_hand_curIndex - 1) < midiNatural.length) && (midiNatural[right_hand_curIndex - 1] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex - 1);
+    }
+    else if((right_hand_curIndex > 1) && ((right_hand_curIndex - 2) < midiNatural.length) && (midiNatural[right_hand_curIndex - 2] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex - 2);
+    }
+    //No need for an else case because this cannot shift left any further
+    else
+    {
+      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'H') //Shift right hand left four natural keys
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tH shifts right hand to the left four natural keys...\n");
+    }
+    if((right_hand_curIndex > 5) && ((right_hand_curIndex - 6) < midiNatural.length) && (midiNatural[right_hand_curIndex - 6] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex - 6);
+    }
+    else if((right_hand_curIndex > 6) && ((right_hand_curIndex - 7) < midiNatural.length) && (midiNatural[right_hand_curIndex - 7] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex - 7);
+    }
+    //No need for an else case because this cannot shift left any further
+    else
+    {
+      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'n') //Shift right hand right one natural key
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tn shifts right hand to the right one natural key...\n");
+    }
+    if(((right_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 1)) && ((right_hand_curIndex + 1) >= 0) && (midiNatural[right_hand_curIndex + 1] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex + 1);
+    }
+    else if(((right_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 2)) && ((right_hand_curIndex + 2) >= 0) && (midiNatural[right_hand_curIndex + 2] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex + 2);
+    }
+    //No need for an else case because this cannot shift right any further
+    else
+    {
+      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+    }
+  }
+  else if(key == 'N') //Shift right hand right four natural keys
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tN shifts right hand to the right four natural keys...\n");
+    }
+    if(((right_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 6)) && ((right_hand_curIndex + 6) >= 0) && (midiNatural[right_hand_curIndex + 6] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex + 6);
+    }
+    else if(((right_hand_curIndex + KEYS_PER_HAND) <= (midiNatural.length - 7)) && ((right_hand_curIndex + 7) >= 0) && (midiNatural[right_hand_curIndex + 7] == Keyboard_CONSTANTS.NATURAL_KEY))
+    {
+      realignKeyboard(RIGHT_HAND, right_hand_curIndex + 7);
+    }
+    //No need for an else case because this cannot shift right any further
+    else
+    {
+      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
     }
   }
 }

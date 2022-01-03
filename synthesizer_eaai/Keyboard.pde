@@ -36,6 +36,10 @@ public static class Keyboard_CONSTANTS
   public static final int PATCHOUT_KEY8 = PATCHOUT_KEY7 + 1;
   public static final int PATCHOUT_KEY9 = PATCHOUT_KEY8 + 1;
   public static final int TOTAL_PATCHOUT = PATCHOUT_KEY9 + 1;
+  
+  //For key type when binding annotations
+  public static final boolean NATURAL_KEY = true;
+  public static final boolean HALFTONE_KEY = !NATURAL_KEY;
 }
 
 public class Keyboard extends SynthComponent
@@ -46,9 +50,13 @@ public class Keyboard extends SynthComponent
   
   //Internal data structures used to manage the keys in use for polyphonic sound
   //Stack that tracks remaining available indeces
-  Stack<Integer> availableKeys;
+  private Stack<Integer> availableKeys;
   //HashMap from a keybinding to the key index that is playing the key value
-  HashMap<Character, Integer> keyBindings;
+  private HashMap<Character, Integer> keyBindings;
+  
+  //In case key annotations are used when rendering (depends on GUI, but can include keyboard bindings, note names, etc.)
+  private String[] annotations_natural;
+  private String[] annotations_halftone;
   
   //Default Constructor - set up all the patches and knobs
   public Keyboard()
@@ -84,6 +92,10 @@ public class Keyboard extends SynthComponent
     {
       availableKeys.push(i);
     }
+    
+    //Setup the annotations to all be empty strings for now
+    annotations_natural = new String[Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL];
+    annotations_halftone = new String[Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL];
   }
   
   //Implement in each component to do any per-draw-iteration updates
@@ -135,6 +147,35 @@ public class Keyboard extends SynthComponent
     
     //Return true to confirm the undone assignment
     return true;
+  }
+  
+  //Assigns an annotation to render with some key
+  //The boolean natural is true when index is for a natural note, false when index is for a halftone
+  //The return value is false when the index does not exist to complete the annotation
+  public boolean set_annotation(boolean natural, int index, String annotation)
+  {
+    //Easy case: index is negative to guarantee out-of-bounds
+    if(index < 0)
+    {
+      return false;
+    }
+    //A natural key uses the corresponding annotation array
+    else if((natural == Keyboard_CONSTANTS.NATURAL_KEY) && (index < annotations_natural.length))
+    {
+      annotations_natural[index] = annotation;
+      return true;
+    }
+    //A halftone key uses the corresponding annotation array
+    else if((natural == Keyboard_CONSTANTS.HALFTONE_KEY) && (index < annotations_halftone.length))
+    {
+      annotations_halftone[index] = annotation;
+      return true;
+    }
+    //At this point, index was out-of-bounds from being too large
+    else
+    {
+      return false;
+    }
   }
   
   //Override the render command for SynthComponent superclass because the keyboard is
@@ -198,12 +239,20 @@ public class Keyboard extends SynthComponent
       //Begin the natural keys in the lower border without intersection with the left
       //  border (used for the output patch), and center vertically
       rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (i * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH, Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT);
+      //If there is an annotation, then print it
+      if((annotations_natural[i] != null) && (!annotations_natural[i].equals("")))
+      {
+        fill(0, 0, 0); //Black text on white key
+        text(annotations_natural[i], xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (i * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) + (Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + ((2 * Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT) / 3));
+        fill(255, 255, 255); //Back to white key's fill
+      }
     }
     //NOTE: Halftones have fun spacing because of the 5 halftones vs. 7 naturals in one octave
     //      Easier to tile from right-to-left due to pattern being partially done in lowest octave
     stroke(0, 0, 0); //Black stroke
     fill(0, 0, 0); //Black fill
     int halftoneOffset = Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL - 1; //Right-most key is natural, not halftone, which starts offset pattern
+    int halftoneAnnotationIndex = annotations_halftone.length - 1;
     for(int i = 0; i < (Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL / Render_CONSTANTS.KEYBOARD_HALFTONE_OCTAVE); i++) //Per complete octave
     {
       halftoneOffset--; //No halftone key (enharmonic B# = C)
@@ -212,6 +261,14 @@ public class Keyboard extends SynthComponent
         //Begin the halftone keys based on spacing horizontally (position with respect to
         //  natural keys and offset to one-third the width) and aligned on top
         rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        //If there is an annotation, then print it
+        if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
+        {
+          fill(255, 255, 255); //White text on black key
+          text(annotations_halftone[halftoneAnnotationIndex], xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET + (Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET + ((1 * Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT) / 2));
+          fill(0, 0, 0); //Back to black key's fill
+        }
+        halftoneAnnotationIndex--;
         halftoneOffset--;
       }
       halftoneOffset--; //No halftone key (enharmonic E# = F)
@@ -220,12 +277,28 @@ public class Keyboard extends SynthComponent
         //Begin the halftone keys based on spacing horizontally (position with respect to
         //  natural keys and offset to one-third the width) and aligned on top
         rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        //If there is an annotation, then print it
+        if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
+        {
+          fill(255, 255, 255); //White text on black key
+          text(annotations_halftone[halftoneAnnotationIndex], xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET + (Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET + (Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT / 2));
+          fill(0, 0, 0); //Back to black key's fill
+        }
+        halftoneAnnotationIndex--;
         halftoneOffset--;
       }
     }
     //Just one halftone key leftover...
     halftoneOffset--; //No halftone key (enharmonic B# = C)
     rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+    //If there is an annotation, then print it
+    if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
+    {
+      fill(255, 255, 255); //White text on black key
+      text(annotations_halftone[halftoneAnnotationIndex], xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET + (Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET + (Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT / 2));
+      fill(0, 0, 0); //Back to black key's fill
+    }
+    halftoneAnnotationIndex--;
   }
   
   //Override the getElementAt command for SynthComponent superclass because the keyboard
