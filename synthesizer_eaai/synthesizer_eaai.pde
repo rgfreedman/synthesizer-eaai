@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 02
+Last Updated: 2022 January 09
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -61,6 +61,9 @@ public final boolean RIGHT_HAND = !LEFT_HAND;
 private int left_hand_curIndex = 0; //Starts at left pinky
 private int right_hand_curIndex = 0; //Starts at right thumb
 
+//For the GUI to render all available instruments at once (easier than adding/removing through GUI commands)
+public int MAX_INSTRUMENTS = 16;
+
 void setup()
 {
   //NOTE: Must provide magic numbers to size(...), not static constants
@@ -94,7 +97,7 @@ void setup()
   //When no instrument debugging, then need a fresh, empty instrument to get started
   else
   {
-    setupBlankInstrument();
+    setupBlankInstruments(MAX_INSTRUMENTS);
   }
   
   //Initialize all the MIDI information for the keyboard
@@ -135,10 +138,16 @@ void draw()
 }
 
 //Used to setup a blank custom instrument with no preloaded features
-private void setupBlankInstrument()
+private void setupBlankInstruments(int numInstruments)
 {
-  instruments.add(new CustomInstrument());
-  currentInstrument = 0; //Set the instrument on screen to be the current one
+  //Make sure at least one instrument gets created
+  if(numInstruments <= 0) {numInstruments = 1;}
+  
+  for(int i = 0; i < numInstruments; i++)
+  {
+    instruments.add(new CustomInstrument());
+  }
+  setCurrentInstrument(0); //Set the first instrument on screen to be the current one
 }
 
 //Used to run the MIDI-related arrays setup (to avoid setup itself being too messy)
@@ -280,6 +289,35 @@ public boolean realignKeyboard(boolean hand, int newIndex)
   
   //By this point, the change was successful
   return true;
+}
+
+boolean setCurrentInstrument(int index)
+{
+  //Confirm the index is valid for an instrument first
+  if((instruments.size() > index) && (index >= 0))
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      println("Changing current instrument from " + currentInstrument + " to " + index + ": success");
+    }
+    //Before swapping out the instrument, make sure anything with a pressed key or mouse is resolved (release them)
+    if(index != currentInstrument)
+    {
+      mouseReleased();
+      //Need to handle for each pressed key on the keyboard
+      keyReleased();
+    }
+    currentInstrument = index;
+    return true;
+  }
+  else
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      println("Changing current instrument from " + currentInstrument + " to " + index + ": failed");
+    }
+    return false;
+  }
 }
 
 /*---Functions for GUI interfacing (computer mouse and keyboard)---*/
@@ -959,6 +997,42 @@ void keyTyped()
     {
       print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
     }
+  }
+  
+  //If the key is assigned to change the current instrument, then set the index appropriately (and check that index works first)
+  else if(key == '`')
+  {
+    setCurrentInstrument(0);
+  }
+  else if((key >= '1') && (key <= '9'))
+  {
+    //Want '1'->1, '2'->2, ..., '9'->9, and '0' is the first ASCII digit
+    setCurrentInstrument(key - '0');
+  }
+  else if(key == '0')
+  {
+    //Yet the first ASCII digit is right-most on a QWERTY keyboard...
+    setCurrentInstrument(10);
+  }
+  else if(key == '-')
+  {
+    setCurrentInstrument(11);
+  }
+  else if(key == '=')
+  {
+    setCurrentInstrument(12);
+  }
+  else if(key == '[')
+  {
+    setCurrentInstrument(13);
+  }
+  else if(key == ']')
+  {
+    setCurrentInstrument(14);
+  }
+  else if(key == '\\') //Escape character is escaped, not actually double-'\'
+  {
+    setCurrentInstrument(15);
   }
 }
 
