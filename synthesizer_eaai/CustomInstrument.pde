@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 01
+Last Updated: 2022 January 09
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -1288,7 +1288,7 @@ public class CustomInstrument implements Instrument
     //setupDebugPolyphonic();
     //setupDebugMixer8to1();
     //setupDebugMixer4to2();
-    setupDebugMixerInstrument();
+    //setupDebugMixerInstrument();
     
     //Just patch an oscilator at a constant frequency directly to the local Summer
     //root = new Oscil(Frequency.ofPitch("A4"), 1, Waves.SQUARE);
@@ -1313,7 +1313,7 @@ public class CustomInstrument implements Instrument
     //drawDebugPolyphonic();
     //drawDebugMixer8to1();
     //drawDebugMixer4to2();
-    drawDebugMixerInstrument();
+    //drawDebugMixerInstrument();
     drawDebugReverseFocus(); //Unlike other debug tests, this one lacks a setup and needs to use one from above!
     
     //Can now test rendering, no matter what components are shown (copied here from 

@@ -35,7 +35,8 @@ public static class Keyboard_CONSTANTS
   public static final int PATCHOUT_KEY7 = PATCHOUT_KEY6 + 1;
   public static final int PATCHOUT_KEY8 = PATCHOUT_KEY7 + 1;
   public static final int PATCHOUT_KEY9 = PATCHOUT_KEY8 + 1;
-  public static final int TOTAL_PATCHOUT = PATCHOUT_KEY9 + 1;
+  //NOTE: Due to computational resources, can reduce polyphony support by lowering TOTAL_PATCHOUT regardless of the indeces available above
+  public static final int TOTAL_PATCHOUT = PATCHOUT_KEY2 + 1;//PATCHOUT_KEY9 + 1;
   
   //For key type when binding annotations
   public static final boolean NATURAL_KEY = true;

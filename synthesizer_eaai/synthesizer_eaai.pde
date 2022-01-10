@@ -40,7 +40,7 @@ public final boolean DEBUG_SYSTEM = false; //For general procedural stuff, like 
 public final boolean DEBUG_INTERFACE_KNOB = false; //For testing interfacing (defined below) with the knob
 public final boolean DEBUG_INTERFACE_PATCH = false; //For testing interfacing (defined below) with the patches
 public final boolean DEBUG_INTERFACE_MOUSE = false; //For testing interfacing (definted below) with the computer mouse
-public final boolean DEBUG_INTERFACE_KEYBOARD = true; //For testing interfacing (defined below) with the computer keyboard
+public final boolean DEBUG_INTERFACE_KEYBOARD = false; //For testing interfacing (defined below) with the computer keyboard
 public final boolean DEBUG_INTERFACE = false || DEBUG_INTERFACE_KNOB || DEBUG_INTERFACE_PATCH || DEBUG_INTERFACE_MOUSE || DEBUG_INTERFACE_KEYBOARD; //For testing interfacing features (GUI, set values via I/O-related function calls)
 
 //Information about the MIDI numbers mapping to various piano keyboard keys and frequency information
@@ -61,8 +61,11 @@ public final boolean RIGHT_HAND = !LEFT_HAND;
 private int left_hand_curIndex = 0; //Starts at left pinky
 private int right_hand_curIndex = 0; //Starts at right thumb
 
+//The GUI should keep track of notes being played
+private HashMap<Character, Integer> guiKeyBindings;
+
 //For the GUI to render all available instruments at once (easier than adding/removing through GUI commands)
-public int MAX_INSTRUMENTS = 16;
+public int MAX_INSTRUMENTS = 2; //16;
 
 void setup()
 {
@@ -102,6 +105,8 @@ void setup()
   
   //Initialize all the MIDI information for the keyboard
   setupMIDIarrays();
+  
+  guiKeyBindings = new HashMap();
   
   //Now there is enough information to bind the keys to the keyboard, if a keyboard exists
   left_hand_curIndex = 0;
@@ -291,6 +296,99 @@ public boolean realignKeyboard(boolean hand, int newIndex)
   return true;
 }
 
+//Checks if the character (forced to lower-case) is assigned to play a note on the instrument's keyboard
+//NOTE: Instead of returning a boolean, returns the index of the MIDI note associated with the key's current binding (-1 when none)
+int playsNote(char c)
+{
+  //Set the character to lower case since no extra bindings to keys when shift is used to play a note
+  c = Character.toLowerCase(c);
+  
+  //Need to consider all assigned keys; also keep track of the index for when a binding is found
+  int checkIndex = right_hand_curIndex;
+  while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.HALFTONE_KEY))
+  {
+    checkIndex++;
+  }
+  for(int i = 0; i < NATURAL_KEYS_RIGHT.length; i++)
+  {
+    //Found a match for the character
+    if(c == NATURAL_KEYS_RIGHT[i])
+    {
+      return checkIndex;
+    }
+    //Advance checkIndex to the next relevant key corresponding to the searched array
+    do
+    {
+      checkIndex++;
+    }
+    while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.HALFTONE_KEY));
+  }
+  
+  checkIndex = left_hand_curIndex;
+  while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.HALFTONE_KEY))
+  {
+    checkIndex++;
+  }
+  for(int i = 0; i < NATURAL_KEYS_LEFT.length; i++)
+  {
+    //Found a match for the character
+    if(c == NATURAL_KEYS_LEFT[i])
+    {
+      return checkIndex;
+    }
+    //Advance checkIndex to the next relevant key corresponding to the searched array
+    do
+    {
+      checkIndex++;
+    }
+    while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.HALFTONE_KEY));
+  }
+  
+  checkIndex = right_hand_curIndex;
+  while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.NATURAL_KEY))
+  {
+    checkIndex++;
+  }
+  for(int i = 0; i < HALFTONE_KEYS_RIGHT.length; i++)
+  {
+    //Found a match for the character
+    if(c == HALFTONE_KEYS_RIGHT[i])
+    {
+      return checkIndex;
+    }
+    //Advance checkIndex to the next relevant key corresponding to the searched array
+    do
+    {
+      checkIndex++;
+    }
+    while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.NATURAL_KEY));
+  }
+  
+  checkIndex = left_hand_curIndex;
+  while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.NATURAL_KEY))
+  {
+    checkIndex++;
+  }
+  for(int i = 0; i < HALFTONE_KEYS_LEFT.length; i++)
+  {
+    //Found a match for the character
+    if(c == HALFTONE_KEYS_LEFT[i])
+    {
+      return checkIndex;
+    }
+    //Advance checkIndex to the next relevant key corresponding to the searched array
+    do
+    {
+      checkIndex++;
+    }
+    while((checkIndex >= 0) && (checkIndex < midiNatural.length) && (midiNatural[checkIndex] == Keyboard_CONSTANTS.NATURAL_KEY));
+  }
+  
+  //By this point, no matches were found; the key should not be assigned to a note
+  return CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+}
+
+//Sets the currentInstrument value to another index, switching out the GUI-displayed instrument
 boolean setCurrentInstrument(int index)
 {
   //Confirm the index is valid for an instrument first
@@ -303,9 +401,26 @@ boolean setCurrentInstrument(int index)
     //Before swapping out the instrument, make sure anything with a pressed key or mouse is resolved (release them)
     if(index != currentInstrument)
     {
+      //Stops any current dragging, patch placement, knob changing, etc.
       mouseReleased();
-      //Need to handle for each pressed key on the keyboard
-      keyReleased();
+      //Need to handle for each pressed key on the keyboard to release it
+      if(guiKeyBindings != null)
+      {
+        try
+        {
+          for(Character c : guiKeyBindings.keySet())
+          {
+            key = c;
+            keyReleased();
+          }
+        }
+        //This was encountered while stress-testing; need to hold a lot of keys and change the instrument at the same time... 
+        //  hopefully no one tries to do this for real
+        catch(java.util.ConcurrentModificationException e)
+        {
+          println(e + ": Please release music-playing keys before changing instruments");
+        }
+      }
     }
     currentInstrument = index;
     return true;
@@ -796,7 +911,7 @@ void keyPressed()
 {
   if(DEBUG_INTERFACE_KEYBOARD)
   {
-    print("Key Pressed:\n");
+    print("Key Pressed (" + key + "):\n");
   }
   
   //Alter processing the mouse press if there is no instrument with which to interact,
@@ -811,11 +926,62 @@ void keyPressed()
   }
   
   //If the key is assigned to play a musical note (most lower/upper case and some punctuation), then start the assigned note
-  /*
-  if(playsnote(key))
+  int midiIndex = playsNote(key);
+  if(DEBUG_INTERFACE_KEYBOARD)
   {
+    print("\tKey " + key + " is bound to midiIndex " + midiIndex + "\n");
   }
-  */
+  if((midiIndex >= 0) && (midiIndex < midiFreq.length))
+  {
+    char lowerCaseKey = Character.toLowerCase(key);
+    //Bind this midi number to the key in case the keys change later
+    guiKeyBindings.put(lowerCaseKey, midiIndex);
+    commandStartNote(currentInstrument, midiNum[midiIndex], lowerCaseKey);
+  }
+}
+
+//When the user releases a key, determine whether it relates to some action on the screen
+void keyReleased()
+{
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    print("Key Released (" + key + "):\n");
+  }
+  
+  //Alter processing the mouse press if there is no instrument with which to interact,
+  //  such as loading an instrument (for now, just abort since no extra functionality)
+  if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null))
+  {
+    if(DEBUG_INTERFACE_KEYBOARD)
+    {
+      print("\tNo instrument identified...\n");
+    }
+    return;
+  }
+  
+  //If the key is assigned to play a musical note (most lower/upper case and some punctuation), then start the assigned note
+  int midiIndex = playsNote(key);
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    print("\tKey " + key + " is bound to midiIndex " + midiIndex + "\n");
+  }
+  if((midiIndex >= 0) && (midiIndex < midiFreq.length))
+  {
+    char lowerCaseKey = Character.toLowerCase(key);
+    //Make sure the binding still exists before stopping a false note
+    if(guiKeyBindings.containsKey(key))
+    {
+      commandStopNote(currentInstrument, midiNum[guiKeyBindings.get(lowerCaseKey)], lowerCaseKey);
+    }
+    //If no binding anymore, then at least try to stop the key in case something is playing...
+    //  use a fake frequency value since the binding is to the character value only
+    else
+    {
+      commandStopNote(currentInstrument, 0.0, lowerCaseKey);
+    }
+    //Unbind this midi number from the key in case the keys change later
+    guiKeyBindings.remove(lowerCaseKey);
+  }
 }
 
 //When the user types (presses and releases) a key, determine whether it relates to some action on the screen
@@ -823,7 +989,7 @@ void keyTyped()
 {
   if(DEBUG_INTERFACE_KEYBOARD)
   {
-    print("Key Typed:\n");
+    print("Key Typed (" + key + "):\n");
   }
   
   //Alter processing the mouse press if there is no instrument with which to interact,
@@ -855,7 +1021,10 @@ void keyTyped()
     //No need for an else case because this cannot shift left any further
     else
     {
-      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'G') //Shift left hand left four natural keys
@@ -875,7 +1044,10 @@ void keyTyped()
     //No need for an else case because this cannot shift left any further
     else
     {
-      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'b') //Shift left hand right one natural key
@@ -895,7 +1067,10 @@ void keyTyped()
     //No need for an else case because this cannot shift right any further
     else
     {
-      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'B') //Shift left hand right four natural keys
@@ -915,7 +1090,10 @@ void keyTyped()
     //No need for an else case because this cannot shift right any further
     else
     {
-      print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with left_hand_curIndex " + left_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'h') //Shift right hand left one natural key
@@ -935,7 +1113,10 @@ void keyTyped()
     //No need for an else case because this cannot shift left any further
     else
     {
-      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'H') //Shift right hand left four natural keys
@@ -955,7 +1136,10 @@ void keyTyped()
     //No need for an else case because this cannot shift left any further
     else
     {
-      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'n') //Shift right hand right one natural key
@@ -975,7 +1159,10 @@ void keyTyped()
     //No need for an else case because this cannot shift right any further
     else
     {
-      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      }
     }
   }
   else if(key == 'N') //Shift right hand right four natural keys
@@ -995,7 +1182,10 @@ void keyTyped()
     //No need for an else case because this cannot shift right any further
     else
     {
-      print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      if(DEBUG_INTERFACE_KEYBOARD)
+      {
+        print("\t\tFailed with right_hand_curIndex " + right_hand_curIndex + "...\n");
+      }
     }
   }
   
@@ -1190,6 +1380,62 @@ void mouseRemoveComponent(int instrumentIndex, int componentIndex)
   
   //Simply remove the specified component
   instruments.get(instrumentIndex).removeSynthComponent(componentIndex);
+}
+
+//Starts playing a note from the instrument (can be a key or a frequency assigned to the binding)
+void commandStartNote(int instrumentIndex, int midiValue, char binding)
+{
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
+  {
+    return;
+  }
+  commandStartNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding);
+}
+void commandStartNote(int instrumentIndex, float frequency, char binding)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (frequency < 0) || (frequency > 6000))
+  {
+    return;
+  }
+  
+  //Simply start the note with the bound char value
+  int assigned = ((Keyboard)instruments.get(instrumentIndex).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_key(binding, frequency);
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    println("Tried to play frequency " + frequency + " with key binding " + binding + " -> result: " + assigned);
+  }
+}
+
+//Stops playing a note from the instrument (can be a key or a frequency assigned to the binding)
+void commandStopNote(int instrumentIndex, int midiValue, char binding)
+{
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
+  {
+    return;
+  }
+  commandStopNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding);
+}
+void commandStopNote(int instrumentIndex, float frequency, char binding)
+{
+  //Make sure the indeces all exist and are not null before beginning
+  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
+  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
+     || (frequency < 0) || (frequency > 6000))
+  {
+    return;
+  }
+  
+  //Simply start the note with the bound char value
+  boolean unassigned = ((Keyboard)instruments.get(instrumentIndex).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).unset_key(binding);
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    println("Tried to halt frequency " + frequency + " with key binding " + binding + " -> result: " + unassigned);
+  }
 }
 
 //Due to closing with the global Summer's patch still active, we force the unpatch before quitting the application
