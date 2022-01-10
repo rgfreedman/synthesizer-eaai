@@ -67,6 +67,10 @@ private HashMap<Character, Integer> guiKeyBindings;
 //For the GUI to render all available instruments at once (easier than adding/removing through GUI commands)
 public int MAX_INSTRUMENTS = 2; //16;
 
+//User IDs will be assigned via socket support to know who took which actions, and
+//  direct interactions with the GUI will be a single user ID
+public int GUI_USER = 0;
+
 void setup()
 {
   //NOTE: Must provide magic numbers to size(...), not static constants
@@ -495,7 +499,7 @@ void mousePressed()
         //If the ID exists, then add the corresponding component
         if(componentID > CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
         {
-          mouseAddComponent(mouseTargetInstrumentIndex, componentID);
+          commandAddComponent(mouseTargetInstrumentIndex, componentID, GUI_USER);
         }
         //We will not need the mouseTarget indeces after creating the component
         mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
@@ -510,7 +514,7 @@ void mousePressed()
         {
           print("\t\tKnob " + mouseTargetKnobIndex + " was under the click\n");
         }
-        mouseAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex);
+        commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex, GUI_USER);
       }
       //When the press is on an input patch, either create or readjust the patch cable---
       //  also store the information until mouse release to complete the patch
@@ -632,7 +636,7 @@ void mouseDragged()
       {
         print("\tLeft mouse is dragging knob " + mouseTargetKnobIndex + "...\n");
       }
-      mouseAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex);
+      commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex, GUI_USER);
     }
   }
 }
@@ -732,12 +736,12 @@ void mouseReleased()
           //If there is previous target information, then the action is moving the selected patch
           if((mousePrevPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
           {
-            mouseMovePatchIn(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchInIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+            commandMovePatchIn(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchInIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
           }
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            mouseNewPatch(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+            commandNewPatch(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
           }
         }
       }
@@ -791,12 +795,12 @@ void mouseReleased()
           //If there is previous target information, then the action is moving the selected patch
           if((mousePrevPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
           {
-            mouseMovePatchOut(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+            commandMovePatchOut(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
           }
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            mouseNewPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], mouseTargetComponentIndex, mouseTargetPatchInIndex);
+            commandNewPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], mouseTargetComponentIndex, mouseTargetPatchInIndex, GUI_USER);
           }
         }
       }
@@ -859,7 +863,7 @@ void mouseClicked()
       //When the reove button is identified, then remove the associated component from the instrument
       if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_REMOVE)
       {
-        mouseRemoveComponent(mouseTargetInstrumentIndex, mouseTargetComponentIndex);
+        commandRemoveComponent(mouseTargetInstrumentIndex, mouseTargetComponentIndex, GUI_USER);
       }
       //When a patch is identified with an existing cable, then remove it from the instrument
       else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
@@ -875,7 +879,7 @@ void mouseClicked()
         //Otherwise, remove the patch cable
         else
         {
-          mouseRemovePatchIn(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+          commandRemovePatchIn(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
         }
       }
       else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
@@ -891,7 +895,7 @@ void mouseClicked()
         //Otherwise, remove the patch cable
         else
         {
-          mouseRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]);
+          commandRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
         }
       }
       //Since the removal of components and patches is a one-and-done operation, release the focus indeces
@@ -936,7 +940,7 @@ void keyPressed()
     char lowerCaseKey = Character.toLowerCase(key);
     //Bind this midi number to the key in case the keys change later
     guiKeyBindings.put(lowerCaseKey, midiIndex);
-    commandStartNote(currentInstrument, midiNum[midiIndex], lowerCaseKey);
+    commandStartNote(currentInstrument, midiNum[midiIndex], lowerCaseKey, GUI_USER);
   }
 }
 
@@ -971,13 +975,13 @@ void keyReleased()
     //Make sure the binding still exists before stopping a false note
     if(guiKeyBindings.containsKey(key))
     {
-      commandStopNote(currentInstrument, midiNum[guiKeyBindings.get(lowerCaseKey)], lowerCaseKey);
+      commandStopNote(currentInstrument, midiNum[guiKeyBindings.get(lowerCaseKey)], lowerCaseKey, GUI_USER);
     }
     //If no binding anymore, then at least try to stop the key in case something is playing...
     //  use a fake frequency value since the binding is to the character value only
     else
     {
-      commandStopNote(currentInstrument, 0.0, lowerCaseKey);
+      commandStopNote(currentInstrument, 0.0, lowerCaseKey, GUI_USER);
     }
     //Unbind this midi number from the key in case the keys change later
     guiKeyBindings.remove(lowerCaseKey);
@@ -1229,7 +1233,7 @@ void keyTyped()
 /*---Functions for operating the interface elements with the mouse and/or keyboard---*/
 
 //Identify the mouse's horizontal position relative to the knob to set its position
-void mouseAdjustKnob(int instrumentIndex, int componentIndex, int knobIndex)
+void commandAdjustKnob(int instrumentIndex, int componentIndex, int knobIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
@@ -1260,7 +1264,7 @@ void mouseAdjustKnob(int instrumentIndex, int componentIndex, int knobIndex)
 }
 
 //Create a new patch and plug it into the instrument
-void mouseNewPatch(int instrumentIndex, int componentOutIndex, int patchOutIndex, int componentInIndex, int patchInIndex)
+void commandNewPatch(int instrumentIndex, int componentOutIndex, int patchOutIndex, int componentInIndex, int patchInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchX is the UGen (should not be null), and getCableX is the PatchCable (should be null) 
@@ -1280,7 +1284,7 @@ void mouseNewPatch(int instrumentIndex, int componentOutIndex, int patchOutIndex
 }
 
 //Take an existing patch and replug its output patch elsewhere in the instrument
-void mouseMovePatchOut(int instrumentIndex, int componentFromOutIndex, int patchFromOutIndex, int componentToOutIndex, int patchToOutIndex)
+void commandMovePatchOut(int instrumentIndex, int componentFromOutIndex, int patchFromOutIndex, int componentToOutIndex, int patchToOutIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should be null in To, not null in From) 
@@ -1300,7 +1304,7 @@ void mouseMovePatchOut(int instrumentIndex, int componentFromOutIndex, int patch
 }
 
 //Take an existing patch and replug its input patch elsewhere in the instrument
-void mouseMovePatchIn(int instrumentIndex, int componentFromInIndex, int patchFromInIndex, int componentToInIndex, int patchToInIndex)
+void commandMovePatchIn(int instrumentIndex, int componentFromInIndex, int patchFromInIndex, int componentToInIndex, int patchToInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should be null in To, not null in From) 
@@ -1320,7 +1324,7 @@ void mouseMovePatchIn(int instrumentIndex, int componentFromInIndex, int patchFr
 }
 
 //Take an existing patch and remove it from the instrument
-void mouseRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIndex)
+void commandRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should not be null) 
@@ -1337,7 +1341,7 @@ void mouseRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIn
 }
 
 //Take an existing patch and remove it from the instrument
-void mouseRemovePatchIn(int instrumentIndex, int componentIndex, int patchInIndex)
+void commandRemovePatchIn(int instrumentIndex, int componentIndex, int patchInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
@@ -1354,7 +1358,7 @@ void mouseRemovePatchIn(int instrumentIndex, int componentIndex, int patchInInde
 }
 
 //Adds a component to the instrument
-void mouseAddComponent(int instrumentIndex, int componentID)
+void commandAddComponent(int instrumentIndex, int componentID, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
@@ -1368,7 +1372,7 @@ void mouseAddComponent(int instrumentIndex, int componentID)
 }
 
 //Removes a component from the instrument
-void mouseRemoveComponent(int instrumentIndex, int componentIndex)
+void commandRemoveComponent(int instrumentIndex, int componentIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
@@ -1383,16 +1387,16 @@ void mouseRemoveComponent(int instrumentIndex, int componentIndex)
 }
 
 //Starts playing a note from the instrument (can be a key or a frequency assigned to the binding)
-void commandStartNote(int instrumentIndex, int midiValue, char binding)
+void commandStartNote(int instrumentIndex, int midiValue, char binding, int userID)
 {
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
      || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
   {
     return;
   }
-  commandStartNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding);
+  commandStartNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding, userID);
 }
-void commandStartNote(int instrumentIndex, float frequency, char binding)
+void commandStartNote(int instrumentIndex, float frequency, char binding, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
@@ -1411,16 +1415,16 @@ void commandStartNote(int instrumentIndex, float frequency, char binding)
 }
 
 //Stops playing a note from the instrument (can be a key or a frequency assigned to the binding)
-void commandStopNote(int instrumentIndex, int midiValue, char binding)
+void commandStopNote(int instrumentIndex, int midiValue, char binding, int userID)
 {
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
      || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
   {
     return;
   }
-  commandStopNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding);
+  commandStopNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding, userID);
 }
-void commandStopNote(int instrumentIndex, float frequency, char binding)
+void commandStopNote(int instrumentIndex, float frequency, char binding, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
