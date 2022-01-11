@@ -1,7 +1,7 @@
 /*CustomInstrument.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 09
+Last Updated: 2022 January 11
 
 Class for a synthesized instrument.  Rather than pre-designed content, the components
 are loosely available for patching and adjusting during execution!  The patching order
@@ -955,6 +955,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Patching in keyboard case because it is not cloned
+    //NOTE: patchoutIndex should be either Keyboard_CONSTANTS.PATCHOUT_KEY0 or Keyboard_CONSTANTS.PATCHOUT_GATE0, and the rest is looping for polyphony
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
@@ -964,11 +965,11 @@ public class CustomInstrument implements Instrument
       {
         if(DEBUG_INTERFACE_PATCH)
         {
-          println("[setPatchOut] patchoutIndex " + i + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+          println("[setPatchOut] patchoutIndex " + (i + patchoutIndex) + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
         }
         
         //The patch cable's setPatchOut method also stores itself in the synth component
-        pcClone[i].setPatchOut(sc, i);
+        pcClone[i].setPatchOut(sc, i + patchoutIndex);
         
         if(DEBUG_INTERFACE_PATCH)
         {
@@ -1043,6 +1044,7 @@ public class CustomInstrument implements Instrument
     }
     
     //Patching in keyboard case because it is not cloned---awkwardly, there are no patch-ins on the keyboard (so dead code for now)
+    //NOTE: patchinIndex should be either Keyboard_CONSTANTS.PATCHOUT_KEY0 or Keyboard_CONSTANTS.PATCHOUT_GATE0, and the rest is looping for polyphony
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones and set the patchOut to the next keyboard patch
@@ -1052,11 +1054,11 @@ public class CustomInstrument implements Instrument
       {
         if(DEBUG_INTERFACE_PATCH)
         {
-          println("[setPatchIn] patchinIndex " + i + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
+          println("[setPatchIn] patchinIndex " + (i + patchinIndex) + " of keyboard " + sc + " will plug into patch cable clone " + i + " (" + pcClone[i] + ")...");
         }
         
         //The patch cable's setPatchIn method also stores itself in the synth component
-        pcClone[i].setPatchIn(sc, i);
+        pcClone[i].setPatchIn(sc, i + patchinIndex);
         
         if(DEBUG_INTERFACE_PATCH)
         {
@@ -1130,17 +1132,18 @@ public class CustomInstrument implements Instrument
       return false;
     }
     
-    //Removing patch in keyboard case because it is not cloned
+    //Removing patch out keyboard case because it is not cloned
+    //NOTE: patchoutIndex should be either Keyboard_CONSTANTS.PATCHOUT_KEY0 or Keyboard_CONSTANTS.PATCHOUT_GATE0, and the rest is looping for polyphony
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones currently plugged in and set the patchOut to null
-      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableOut(Keyboard_CONSTANTS.PATCHOUT_KEY0));
+      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableOut(patchoutIndex));
       
       for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
       {
         if(DEBUG_INTERFACE_PATCH)
         {
-          println("[unsetPatchOut] patchoutIndex " + i + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+          println("[unsetPatchOut] patchoutIndex " + (i + patchoutIndex) + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
         }
         
         //The patch cable's setPatchOut method also stores itself in the synth component
@@ -1219,16 +1222,17 @@ public class CustomInstrument implements Instrument
     }
     
     //Removing patch in keyboard case because it is not cloned---awkwardly, there are no patch-ins on the keyboard (so dead code for now)
+    //NOTE: patchinIndex should be either Keyboard_CONSTANTS.PATCHOUT_KEY0 or Keyboard_CONSTANTS.PATCHOUT_GATE0, and the rest is looping for polyphony
     if(sc == keyboard)
     {
       //Iterate over all the patch cable clones currently plugged in and set the patchOut to null
-      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableIn(Keyboard_CONSTANTS.PATCHOUT_KEY0));
+      PatchCable[] pcClone = polyphonicPatchClones.get(keyboard.getCableIn(patchinIndex));
       
       for(int i = 0; i < Keyboard_CONSTANTS.TOTAL_PATCHIN; i++)
       {
         if(DEBUG_INTERFACE_PATCH)
         {
-          println("[unsetPatchIn] patchinIndex " + i + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
+          println("[unsetPatchIn] patchinIndex " + (i + patchinIndex) + " of keyboard " + sc + " will unplug patch cable clone " + i + " (" + pcClone[i] + ")...");
         }
         
         //The patch cable's setPatchIn method also stores itself in the synth component

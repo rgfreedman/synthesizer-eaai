@@ -1,7 +1,7 @@
 /*EnvelopeGenerator.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 22
+Last Updated: 2021 January 11
 
 Class for an envelope generator (EG) component within a synthesized instrument.
 This component modifies the amplitude of an input wave with a more complex pattern that
@@ -120,7 +120,17 @@ public class EnvelopeGenerator extends SynthComponent
   public void draw_update()
   {
     //Check the gate value to determine whether a note is starting or stopping
-    gate.tick(recent_gate);
+    try
+    {
+      gate.tick(recent_gate);
+    }
+    //Somehow, the tick overflows once in a while and sends waaaay more than a few samples
+    catch(java.lang.ArrayIndexOutOfBoundsException e)
+    {
+      println(e + ": Envelope Generator had a problem");
+      //Set recent_gate to lenth 0 and skip the check below
+      recent_gate = new float[0];
+    }
     
     //Instead of looping over all the samples and starting/stopping many notes, just
     //  check the most recent sample
