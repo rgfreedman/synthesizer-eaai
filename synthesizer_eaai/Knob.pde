@@ -109,6 +109,16 @@ public class Knob
     stroke(255, 0, 0);
     fill(255, 0, 0);
     rect(xOffset + (int)(currentPosition * Render_CONSTANTS.KNOB_WIDTH) - (Render_CONSTANTS.KNOB_CURSOR_WIDTH / 2), yOffset - ((Render_CONSTANTS.KNOB_CURSOR_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KNOB_CURSOR_WIDTH, Render_CONSTANTS.KNOB_CURSOR_HEIGHT);
+    
+    //Lastly, print the interval of values for reference (at the ends of the slider)
+    fill(0, 0, 0);
+    textAlign(LEFT, CENTER);
+    text("" + minimumValue, xOffset, yOffset + (Render_CONSTANTS.KNOB_HEIGHT / 2));
+    textAlign(RIGHT, CENTER);
+    text("" + maximumValue, xOffset + Render_CONSTANTS.KNOB_WIDTH, yOffset + (Render_CONSTANTS.KNOB_HEIGHT / 2));
+    
+    //Return the text alignment to its traditional setting
+    textAlign(CENTER, CENTER);
   }
   
   //Reverse engineering of the rendering process to identify if this knob has the focus
