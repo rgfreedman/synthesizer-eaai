@@ -100,6 +100,14 @@ void setup()
   //Initialize all the MIDI information for the keyboard
   setupMIDIarrays();
   
+  //Now there is enough information to bind the keys to the keyboard, if a keyboard exists
+  //Place the hands a little away from the center (rather than at extreme ends) of the keyboard
+  left_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) - KEYS_PER_HAND;//0;
+  right_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) + KEYS_PER_HAND - 1;//Render_CONSTANTS.KEYBOARD_KEYS_TOTAL - KEYS_PER_HAND; //This is a natural key, and will have one key off the keyboard bounds
+  //NOTE: realignment is now done in setCurrentInstrument, called from setupBlankInstruments
+  //realignKeyboard(LEFT_HAND, left_hand_curIndex);
+  //realignKeyboard(RIGHT_HAND, right_hand_curIndex);
+  
   //For easy access to a testbed, preload a special custom instrument when debugging
   if(DEBUG_SYSTEM || DEBUG_INTERFACE)
   {
@@ -112,12 +120,6 @@ void setup()
   }
   
   guiKeyBindings = new HashMap();
-  
-  //Now there is enough information to bind the keys to the keyboard, if a keyboard exists
-  left_hand_curIndex = 0;
-  right_hand_curIndex = Render_CONSTANTS.KEYBOARD_KEYS_TOTAL - KEYS_PER_HAND; //This is a natural key, and will have one key off the keyboard bounds
-  realignKeyboard(LEFT_HAND, left_hand_curIndex);
-  realignKeyboard(RIGHT_HAND, right_hand_curIndex);
 }
 
 void draw()
@@ -282,12 +284,20 @@ public boolean realignKeyboard(boolean hand, int newIndex)
     if((i < 0) || (i >= midiNatural.length)) {continue;} //Skip if out-of-bounds
     if(midiNatural[i] == Keyboard_CONSTANTS.NATURAL_KEY)
     {
-      k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + naturalKeys[nextNaturalIndex]);
+      //Some awkward cases where there are more natural keys than expected... simply skip annotations and key bindings
+      if(nextNaturalIndex < naturalKeys.length)
+      {
+        k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + naturalKeys[nextNaturalIndex]);
+      }
       nextNaturalIndex++;
     }
     else if(midiNatural[i] == Keyboard_CONSTANTS.HALFTONE_KEY)
     {
-      k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + halftoneKeys[nextHalftoneIndex]);
+      //Some awkward cases where there are more halftone keys than expected... simply skip annotations and key bindings
+      if(nextHalftoneIndex < halftoneKeys.length)
+      {
+        k.set_annotation(midiNatural[i], midiKeyIndex[i], "" + halftoneKeys[nextHalftoneIndex]);
+      }
       nextHalftoneIndex++;
     }
     //This should be dead code, but never hurts to be safe
