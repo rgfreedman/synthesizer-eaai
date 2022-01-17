@@ -1,7 +1,7 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 09
+Last Updated: 2022 January 17
 
 A synthesizer application that generates custom audio based on setup of various components.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
@@ -66,6 +66,7 @@ private HashMap<Character, Integer> guiKeyBindings;
 
 //For the GUI to render all available instruments at once (easier than adding/removing through GUI commands)
 public int MAX_INSTRUMENTS = 2; //16;
+public final char[] INSTRUMENT_HOTKEYS = {'`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']', '\\'};
 
 //User IDs will be assigned via socket support to know who took which actions, and
 //  direct interactions with the GUI will be a single user ID
@@ -96,6 +97,9 @@ void setup()
   //  where the solution for how to activate code when exiting the application was found
   prepareExitHandler();
   
+  //Initialize all the MIDI information for the keyboard
+  setupMIDIarrays();
+  
   //For easy access to a testbed, preload a special custom instrument when debugging
   if(DEBUG_SYSTEM || DEBUG_INTERFACE)
   {
@@ -106,9 +110,6 @@ void setup()
   {
     setupBlankInstruments(MAX_INSTRUMENTS);
   }
-  
-  //Initialize all the MIDI information for the keyboard
-  setupMIDIarrays();
   
   guiKeyBindings = new HashMap();
   
@@ -300,6 +301,31 @@ public boolean realignKeyboard(boolean hand, int newIndex)
   return true;
 }
 
+//Resets the keyboard annotations, removing all labels from all keys
+public void resetKeyboardAnnotations()
+{
+  //Make sure the newIndex value is valid (within bounds for at least one key on the hand)
+  if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null)
+     || (instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
+  {
+    return;
+  }
+  
+  if(DEBUG_INTERFACE_KEYBOARD)
+  {
+    println("Removing all labels on keyboard");
+  }
+  
+  //Grab the keyboard for the upcoming calls to change annotations
+  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
+  
+  //Simply iterate over all the keys and set them to be blank
+  for(int i = 0; i < midiNatural.length; i++)
+  {
+    k.set_annotation(midiNatural[i], midiKeyIndex[i], "");
+  }
+}
+
 //Checks if the character (forced to lower-case) is assigned to play a note on the instrument's keyboard
 //NOTE: Instead of returning a boolean, returns the index of the MIDI note associated with the key's current binding (-1 when none)
 int playsNote(char c)
@@ -402,6 +428,10 @@ boolean setCurrentInstrument(int index)
     {
       println("Changing current instrument from " + currentInstrument + " to " + index + ": success");
     }
+    
+    //Before swapping out the instrument, clear the annotations on the current keyboard (might change before coming back)
+    resetKeyboardAnnotations();
+    
     //Before swapping out the instrument, make sure anything with a pressed key or mouse is resolved (release them)
     if(index != currentInstrument)
     {
@@ -427,6 +457,11 @@ boolean setCurrentInstrument(int index)
       }
     }
     currentInstrument = index;
+    
+    //After swapping out the instrument, realign the keyboard to match the current settings
+    realignKeyboard(LEFT_HAND, left_hand_curIndex);
+    realignKeyboard(RIGHT_HAND, right_hand_curIndex);
+    
     return true;
   }
   else
@@ -1193,40 +1228,14 @@ void keyTyped()
     }
   }
   
-  //If the key is assigned to change the current instrument, then set the index appropriately (and check that index works first)
-  else if(key == '`')
+  //If the key is assigned to change the current instrument, then set the index appropriately (and check that index works first---done in the setCurrentInstrument method)
+  for(int i = 0; i < INSTRUMENT_HOTKEYS.length; i++)
   {
-    setCurrentInstrument(0);
-  }
-  else if((key >= '1') && (key <= '9'))
-  {
-    //Want '1'->1, '2'->2, ..., '9'->9, and '0' is the first ASCII digit
-    setCurrentInstrument(key - '0');
-  }
-  else if(key == '0')
-  {
-    //Yet the first ASCII digit is right-most on a QWERTY keyboard...
-    setCurrentInstrument(10);
-  }
-  else if(key == '-')
-  {
-    setCurrentInstrument(11);
-  }
-  else if(key == '=')
-  {
-    setCurrentInstrument(12);
-  }
-  else if(key == '[')
-  {
-    setCurrentInstrument(13);
-  }
-  else if(key == ']')
-  {
-    setCurrentInstrument(14);
-  }
-  else if(key == '\\') //Escape character is escaped, not actually double-'\'
-  {
-    setCurrentInstrument(15);
+    if(key == INSTRUMENT_HOTKEYS[i])
+    {
+      setCurrentInstrument(i);
+      break;
+    }
   }
 }
 
