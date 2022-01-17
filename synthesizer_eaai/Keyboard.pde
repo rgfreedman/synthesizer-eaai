@@ -1,7 +1,7 @@
 /*Keyboard.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 11
+Last Updated: 2022 January 17
 
 Class for a keyboard component within a synthesized instrument.
 This component sends frequency information for a pressed key that can act as dynamic
@@ -74,6 +74,10 @@ public class Keyboard extends SynthComponent
   private String[] annotations_natural;
   private String[] annotations_halftone;
   
+  //In case key highlighting is used when rendering (depends on GUI, but can include keyboard pressing, etc.)
+  private boolean[] highlight_natural;
+  private boolean[] highlight_halftone;
+  
   //Default Constructor - set up all the patches and knobs
   public Keyboard()
   {
@@ -117,6 +121,8 @@ public class Keyboard extends SynthComponent
     //Setup the annotations to all be empty strings for now
     annotations_natural = new String[Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL];
     annotations_halftone = new String[Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL];
+    highlight_natural = new boolean[Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL];
+    highlight_halftone = new boolean[Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL];
   }
   
   //Implement in each component to do any per-draw-iteration updates
@@ -203,6 +209,35 @@ public class Keyboard extends SynthComponent
     }
   }
   
+  //Toggles highlighting to render with some key
+  //The boolean natural is true when index is for a natural note, false when index is for a halftone
+  //The return value is false when the index does not exist to complete the annotation
+  public boolean set_highlight(boolean natural, int index, boolean highlight)
+  {
+    //Easy case: index is negative to guarantee out-of-bounds
+    if(index < 0)
+    {
+      return false;
+    }
+    //A natural key uses the corresponding annotation array
+    else if((natural == Keyboard_CONSTANTS.NATURAL_KEY) && (index < highlight_natural.length))
+    {
+      highlight_natural[index] = highlight;
+      return true;
+    }
+    //A halftone key uses the corresponding annotation array
+    else if((natural == Keyboard_CONSTANTS.HALFTONE_KEY) && (index < highlight_halftone.length))
+    {
+      highlight_halftone[index] = highlight;
+      return true;
+    }
+    //At this point, index was out-of-bounds from being too large
+    else
+    {
+      return false;
+    }
+  }
+  
   //Override the render command for SynthComponent superclass because the keyboard is
   //  very different in design (show subset of patches and knobs, mostly keys) and 
   //  should be part of all instruments (rather than as a possible component)
@@ -277,9 +312,19 @@ public class Keyboard extends SynthComponent
     fill(255, 255, 255); //White fill
     for(int i = 0; i < Render_CONSTANTS.KEYBOARD_NATURAL_TOTAL; i++)
     {
+      //Adjust the color display when the key is highlighted (turn to magenta key fill)
+      if(highlight_natural[i])
+      {
+        fill(255, 0 , 255);
+      }
       //Begin the natural keys in the lower border without intersection with the left
       //  border (used for the output patch), and center vertically
       rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (i * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH), yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2), Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH, Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT);
+      //Reset the color display when the key is highlighted (back to white key fill)
+      if(highlight_natural[i])
+      {
+        fill(255, 255 , 255);
+      }
       //If there is an annotation, then print it
       if((annotations_natural[i] != null) && (!annotations_natural[i].equals("")))
       {
@@ -299,9 +344,19 @@ public class Keyboard extends SynthComponent
       halftoneOffset--; //No halftone key (enharmonic B# = C)
       for(int j = 0; j < 3; j++) //3 halftone keys in a row
       {
+        //Adjust the color display when the key is highlighted (turn to blue key fill)
+        if(highlight_halftone[halftoneAnnotationIndex])
+        {
+          fill(0, 0 , 255);
+        }
         //Begin the halftone keys based on spacing horizontally (position with respect to
         //  natural keys and offset to one-third the width) and aligned on top
         rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        //Reset the color display when the key is highlighted (back to black key fill)
+        if(highlight_halftone[halftoneAnnotationIndex])
+        {
+          fill(0, 0 , 0);
+        }
         //If there is an annotation, then print it
         if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
         {
@@ -315,9 +370,19 @@ public class Keyboard extends SynthComponent
       halftoneOffset--; //No halftone key (enharmonic E# = F)
       for(int j = 0; j < 2; j++) //2 halftone keys in a row
       {
+        //Adjust the color display when the key is highlighted (turn to blue key fill)
+        if(highlight_halftone[halftoneAnnotationIndex])
+        {
+          fill(0, 0 , 255);
+        }
         //Begin the halftone keys based on spacing horizontally (position with respect to
         //  natural keys and offset to one-third the width) and aligned on top
         rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+        //Reset the color display when the key is highlighted (back to black key fill)
+        if(highlight_halftone[halftoneAnnotationIndex])
+        {
+          fill(0, 0 , 0);
+        }
         //If there is an annotation, then print it
         if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
         {
@@ -331,7 +396,17 @@ public class Keyboard extends SynthComponent
     }
     //Just one halftone key leftover...
     halftoneOffset--; //No halftone key (enharmonic B# = C)
+    //Adjust the color display when the key is highlighted (turn to blue key fill)
+    if(highlight_halftone[halftoneAnnotationIndex])
+    {
+      fill(0, 0 , 255);
+    }
     rect(xOffset + Render_CONSTANTS.LEFT_BORDER_WIDTH + (halftoneOffset * Render_CONSTANTS.KEYBOARD_NATURAL_WIDTH) - Render_CONSTANTS.KEYBOARD_HALFTONE_HORIZ_OFFSET, yOffset + Render_CONSTANTS.KNOB_HEIGHT + ((Render_CONSTANTS.LOWER_BORDER_HEIGHT - Render_CONSTANTS.KEYBOARD_NATURAL_HEIGHT - Render_CONSTANTS.KNOB_HEIGHT) / 2) + Render_CONSTANTS.KEYBOARD_HALFTONE_VERT_OFFSET, Render_CONSTANTS.KEYBOARD_HALFTONE_WIDTH, Render_CONSTANTS.KEYBOARD_HALFTONE_HEIGHT);
+    //Reset the color display when the key is highlighted (back to black key fill)
+    if(highlight_halftone[halftoneAnnotationIndex])
+    {
+      fill(0, 0 , 0);
+    }
     //If there is an annotation, then print it
     if((annotations_halftone[halftoneAnnotationIndex] != null) && (!annotations_halftone[halftoneAnnotationIndex].equals("")))
     {

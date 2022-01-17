@@ -452,7 +452,8 @@ boolean setCurrentInstrument(int index)
       {
         try
         {
-          for(Character c : guiKeyBindings.keySet())
+          //NOTE: Setting to an ArrayList of the set to avoid the ConcurrentModificationException
+          for(Character c : new ArrayList<Character>(guiKeyBindings.keySet()))
           {
             key = c;
             keyReleased();
@@ -985,6 +986,9 @@ void keyPressed()
     char lowerCaseKey = Character.toLowerCase(key);
     //Bind this midi number to the key in case the keys change later
     guiKeyBindings.put(lowerCaseKey, midiIndex);
+    //Highlight the specified key as well
+    ((Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], true);
+    //Send the command to play the specified note
     commandStartNote(currentInstrument, midiNum[midiIndex], lowerCaseKey, GUI_USER);
   }
 }
@@ -1028,6 +1032,8 @@ void keyReleased()
     {
       commandStopNote(currentInstrument, 0.0, lowerCaseKey, GUI_USER);
     }
+    //Undo the highlighting of the corresponding key on the keyboard
+    ((Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], false);
     //Unbind this midi number from the key in case the keys change later
     guiKeyBindings.remove(lowerCaseKey);
   }
