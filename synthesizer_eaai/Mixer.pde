@@ -1,12 +1,12 @@
 /*Mixer.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 01
+Last Updated: 2022 January 20
 
-Class for a mixer component within a synthesized instrument.
-This component simply merges wave inputs to allow all of them in a single output.
+Class for a mixer module within a synthesized instrument.
+This module simply merges wave inputs to allow all of them in a single output.
 
-NOTE: To allow compact options (for component limit), have a 8->1 and a 4->2 version
+NOTE: To allow compact options (for module limit), have a 8->1 and a 4->2 version
 NOTE: To complete the instrument output, have an exclusive version for the instrument
 */
 
@@ -41,9 +41,9 @@ public static class Mixer8to1_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_MERGE + 1;
 }
 
-public class Mixer8to1 extends SynthComponent
+public class Mixer8to1 extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //A Summer that will merge the input waveforms
   private Summer blender;
   //Multiplier performs the volume modification to each waveform's volume
@@ -84,7 +84,7 @@ public class Mixer8to1 extends SynthComponent
     knobsLabel[Mixer8to1_CONSTANTS.KNOB_VOL6] = "VOL (6)";
     knobsLabel[Mixer8to1_CONSTANTS.KNOB_VOL7] = "VOL (7)";
     
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     blender = new Summer();
     volModifier0 = new Multiplier();
     volModifier1 = new Multiplier();
@@ -107,7 +107,7 @@ public class Mixer8to1 extends SynthComponent
     patchOut[Mixer8to1_CONSTANTS.PATCHOUT_MERGE] = blender;
     
     //Labels for the patches in the GUI
-    componentName = "Mixer (8->1)";
+    moduleName = "Mixer (8->1)";
     patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
     patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
     patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";
@@ -118,7 +118,7 @@ public class Mixer8to1 extends SynthComponent
     patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL7] = "WAVE IN (7)";
     patchOutLabel[Mixer8to1_CONSTANTS.PATCHOUT_MERGE] = "WAVE OUT";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[Mixer8to1_CONSTANTS.KNOB_VOL0].getCurrentValue().patch(volModifier0.amplitude);
     knobs[Mixer8to1_CONSTANTS.KNOB_VOL1].getCurrentValue().patch(volModifier1.amplitude);
     knobs[Mixer8to1_CONSTANTS.KNOB_VOL2].getCurrentValue().patch(volModifier2.amplitude);
@@ -137,7 +137,7 @@ public class Mixer8to1 extends SynthComponent
     volModifier7.patch(blender);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
@@ -177,9 +177,9 @@ public static class Mixer4to2_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_MERGE1 + 1;
 }
 
-public class Mixer4to2 extends SynthComponent
+public class Mixer4to2 extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //A Summer that will merge the input waveforms
   private Summer blender0;
   private Summer blender1;
@@ -221,7 +221,7 @@ public class Mixer4to2 extends SynthComponent
     knobsLabel[Mixer4to2_CONSTANTS.KNOB_VOL6] = "VOL (6)";
     knobsLabel[Mixer4to2_CONSTANTS.KNOB_VOL7] = "VOL (7)";
     
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     blender0 = new Summer();
     blender1 = new Summer();
     volModifier0 = new Multiplier();
@@ -246,7 +246,7 @@ public class Mixer4to2 extends SynthComponent
     patchOut[Mixer4to2_CONSTANTS.PATCHOUT_MERGE1] = blender1;
     
     //Labels for the patches in the GUI
-    componentName = "Mixer (4->2)";
+    moduleName = "Mixer (4->2)";
     patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
     patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
     patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";
@@ -258,7 +258,7 @@ public class Mixer4to2 extends SynthComponent
     patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE0] = "WAVE OUT (0-3)";
     patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE1] = "WAVE OUT (4-7)";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[Mixer4to2_CONSTANTS.KNOB_VOL0].getCurrentValue().patch(volModifier0.amplitude);
     knobs[Mixer4to2_CONSTANTS.KNOB_VOL1].getCurrentValue().patch(volModifier1.amplitude);
     knobs[Mixer4to2_CONSTANTS.KNOB_VOL2].getCurrentValue().patch(volModifier2.amplitude);
@@ -277,7 +277,7 @@ public class Mixer4to2 extends SynthComponent
     volModifier7.patch(blender1);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
@@ -332,9 +332,9 @@ public static class MixerInstrument_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_MERGE + 1;
 }
 
-public class MixerInstrument extends SynthComponent
+public class MixerInstrument extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //A Summer that will merge the input waveforms
   private Summer blender;
   //Multiplier performs the volume modification to each waveform's volume
@@ -399,7 +399,7 @@ public class MixerInstrument extends SynthComponent
     knobsLabel[MixerInstrument_CONSTANTS.KNOB_VOL14] = "VOL (14)";
     knobsLabel[MixerInstrument_CONSTANTS.KNOB_VOL15] = "VOL (15)";
     
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     blender = new Summer();
     volModifier0 = new Multiplier();
     volModifier1 = new Multiplier();
@@ -438,7 +438,7 @@ public class MixerInstrument extends SynthComponent
     patchOut[MixerInstrument_CONSTANTS.PATCHOUT_MERGE] = blender;
     
     //Labels for the patches in the GUI
-    componentName = "Mixer (to Speaker)";
+    moduleName = "Mixer (to Speaker)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";
@@ -457,7 +457,7 @@ public class MixerInstrument extends SynthComponent
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL15] = "WAVE IN (15)";
     patchOutLabel[MixerInstrument_CONSTANTS.PATCHOUT_MERGE] = "WAVE OUT";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[MixerInstrument_CONSTANTS.KNOB_VOL0].getCurrentValue().patch(volModifier0.amplitude);
     knobs[MixerInstrument_CONSTANTS.KNOB_VOL1].getCurrentValue().patch(volModifier1.amplitude);
     knobs[MixerInstrument_CONSTANTS.KNOB_VOL2].getCurrentValue().patch(volModifier2.amplitude);
@@ -492,20 +492,20 @@ public class MixerInstrument extends SynthComponent
     volModifier15.patch(blender);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
     //Nothing here yet, knob updates are now done in Knob class (as they should)
   }
   
-  //Override the render command for SynthComponent superclass because this mixer is
+  //Override the render command for SynthModule superclass because this mixer is
   //  very different in design (hide output patches) and should be part of all 
-  //  instruments (rather than as a possible component)
+  //  instruments (rather than as a possible module)
   public void render(int xOffset, int yOffset)
   {
-    //As the lowest layer of the GUI image for the component,
-    //  render the component's box as a rectangle (rather than a component, fills lower border)
+    //As the lowest layer of the GUI image for the module,
+    //  render the module's box as a rectangle (rather than a module, fills lower border)
     stroke(0, 0, 0); //Black stroke
     strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     fill(128, 128, 128); //light-grey fill
@@ -513,15 +513,15 @@ public class MixerInstrument extends SynthComponent
     
     //All text should be centered about the specified (x,y) coordinates per text() call
     textAlign(CENTER, CENTER);
-    //Like font, set the size of all text on this component (measured in pixels)
+    //Like font, set the size of all text on this module (measured in pixels)
     //For simplicity, make the same size as a knob (since portrayed as a slider)
     textSize(Render_CONSTANTS.KNOB_HEIGHT);
     
-    //Next, render the component name in the top-center of the component
-    if(componentName != null)
+    //Next, render the module name in the top-center of the module
+    if(moduleName != null)
     {
       fill(0, 0, 0); //Black text
-      text(componentName, xOffset + (Render_CONSTANTS.RIGHT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
+      text(moduleName, xOffset + (Render_CONSTANTS.RIGHT_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
     }
     
     //Despite all the output patches, these are to allow instrument polyphony (simultaneous
@@ -536,7 +536,7 @@ public class MixerInstrument extends SynthComponent
     for(int i = 0; i < ((patchIn != null) ? patchIn.length : 0); i++)
     {
       //Render a patch hole if a patch is defined in this entry
-      //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
+      //  This is to avoid putting a cable into nothing, or can align holes to pretty-print module
       if(patchIn[i] != null)
       {
         //If provided, include label for the patch
@@ -557,12 +557,12 @@ public class MixerInstrument extends SynthComponent
     
     //Do not render the patch out (merged goes into audio, not a patch itself)
     
-    //Now render the knobs, laying them out along the component
+    //Now render the knobs, laying them out along the module
     //  Each knob is a rectangle to resemble a slider, including a "cursor" for the position
     for(int i = 0; i < ((knobs != null) ? knobs.length : 0); i++)
     {
       //Render a knob if a patch is defined in this entry
-      //  This is to avoid sliding on nothing, or can align knobs to pretty-print component
+      //  This is to avoid sliding on nothing, or can align knobs to pretty-print module
       if(knobs[i] != null)
       {
         //If provided, include label for the patch
@@ -579,20 +579,20 @@ public class MixerInstrument extends SynthComponent
     }
   }
   
-  //Override the getElementAt command for SynthComponent superclass because the instrument
+  //Override the getElementAt command for SynthModule superclass because the instrument
   //  mixer is very different in design (hide output patches) and should be part of all 
-  //  instruments (rather than as a possible component)
+  //  instruments (rather than as a possible module)
   //Output format is a length-2 integer array: [element_type, index]
   //NOTE: The output format will have some helpful magic numbers defined in Render_CONSTANTS
-  //NOTE: The inputs x and y are relative to the top-left corner of this SynthComponent
+  //NOTE: The inputs x and y are relative to the top-left corner of this SynthModule
   public int[] getElementAt(int x, int y)
   {
     //Setup the output array first, fill in just before returning (set to default, the "null")
-    int[] toReturn = new int[Render_CONSTANTS.SYNTHCOMPONENT_TOTAL_FOCUS];
-    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE;
-    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = -1;
+    int[] toReturn = new int[Render_CONSTANTS.SYNTHMODULE_TOTAL_FOCUS];
+    toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_NONE;
+    toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = -1;
     
-    //Before starting, return nothing relevant if outside the bounds of the component
+    //Before starting, return nothing relevant if outside the bounds of the module
     if((x < 0) || (x >= Render_CONSTANTS.RIGHT_BORDER_WIDTH) || (y < 0) || (y >= (Render_CONSTANTS.RIGHT_BORDER_HEIGHT - Render_CONSTANTS.UPPER_BORDER_HEIGHT - Render_CONSTANTS.LOWER_BORDER_HEIGHT)))
     {
       return toReturn;
@@ -606,8 +606,8 @@ public class MixerInstrument extends SynthComponent
         //The patch is just a circle
         if(Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.RIGHT_BORDER_WIDTH / 5, (3 * Render_CONSTANTS.PATCH_RADIUS) + ((i + 1) * 2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
         {
-          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN;
-          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
+          toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN;
+          toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = i;
           return toReturn;
         }
       }
@@ -620,8 +620,8 @@ public class MixerInstrument extends SynthComponent
         //Because the knob can locally check the point for containment, set the top-left for containment
         if((knobs[i] != null) && knobs[i].contains_point(x - (((Render_CONSTANTS.RIGHT_BORDER_WIDTH * 2) / 3) - (Render_CONSTANTS.KNOB_WIDTH / 2)), y - (Render_CONSTANTS.KNOB_HEIGHT + ((i + 1) * 2 * (Render_CONSTANTS.KNOB_HEIGHT + Render_CONSTANTS.VERT_SPACE)))))
         {
-          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB;
-          toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = i;
+          toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_KNOB;
+          toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = i;
           return toReturn;
         }
       }

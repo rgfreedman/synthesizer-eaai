@@ -1,11 +1,11 @@
 /*Power.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 06
+Last Updated: 2022 January 20
 
-Class for a voltage output component (power, like a battery) within a synthesized instrument.
-This component simply outputs a value, being a glorified knob that one can patch to
-other component inputs.
+Class for a voltage output module (power, like a battery) within a synthesized instrument.
+This module simply outputs a value, being a glorified knob that one can patch to
+other module inputs.
 */
 
 //Processing only allows static content in a static class (rather than mixing)
@@ -24,7 +24,7 @@ public static class Power_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_POWER + 1;
 }
 
-public class Power extends SynthComponent
+public class Power extends SynthModule
 {
   //Default Constructor - set up the knob and pipe its oscillator to the output patch
   public Power()
@@ -45,10 +45,10 @@ public class Power extends SynthComponent
     
     //Label for the patch in the GUI
     patchOutLabel[Power_CONSTANTS.PATCHOUT_POWER] = "FREQ OUT";
-    componentName = "Power";
+    moduleName = "Power";
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

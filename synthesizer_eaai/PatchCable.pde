@@ -1,19 +1,19 @@
 /*PatchCable.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 28
+Last Updated: 2022 January 20
 
-Class for a patch cable the joins components within a synthesized instrument.
-This component simply contains the information about the input and output patch,
+Class for a patch cable the joins modules within a synthesized instrument.
+This module simply contains the information about the input and output patch,
 joining them during its construction.  Think of the cable like a directed edge in a 
-graph where the synthesizer components are nodes.
+graph where the synthesizer modules are nodes.
 */
 
 public class PatchCable
 {
   //This is the "to" direction of the edge
-  //Information about the input patch (patchIn), which is the component and input index
-  protected SynthComponent patchInSynComp;
+  //Information about the input patch (patchIn), which is the module and input index
+  protected SynthModule patchInSynComp;
   protected int patchInIndex = -1;
   
   //For rendering in the GUI, need to keep track of the x,y of the patch (for cable insertion)
@@ -22,8 +22,8 @@ public class PatchCable
   protected int patchIn_renderY = -1;
   
   //This is the "from" direction of the edge
-  //Information about the output patch (patchOut), which is the component and output index
-  protected SynthComponent patchOutSynComp;
+  //Information about the output patch (patchOut), which is the module and output index
+  protected SynthModule patchOutSynComp;
   protected int patchOutIndex = -1;
   
   //For rendering in the GUI, need to keep track of the x,y of the patch (for cable insertion)
@@ -39,27 +39,27 @@ public class PatchCable
   }
   
   //Typical constructor - Supply the patch information and then the patch sets itself up
-  public PatchCable(SynthComponent outSC, int outIndex, SynthComponent inSC, int inIndex)
+  public PatchCable(SynthModule outSC, int outIndex, SynthModule inSC, int inIndex)
   {
     //Simply use the mutator methods to set up these patches without worrying about errors
     this.setPatchIn(inSC, inIndex);
     this.setPatchOut(outSC, outIndex);
   }
   
-  //Accessors for the components and indeces
-  public SynthComponent getPatchInComponent() {return patchInSynComp;}
+  //Accessors for the modules and indeces
+  public SynthModule getPatchInModule() {return patchInSynComp;}
   public int getPatchInIndex() {return patchInIndex;}
-  public SynthComponent getPatchOutComponent() {return patchOutSynComp;}
+  public SynthModule getPatchOutModule() {return patchOutSynComp;}
   public int getPatchOutIndex() {return patchOutIndex;}
-  //Simplified accessor for getting the actual UGen based on the component and index
+  //Simplified accessor for getting the actual UGen based on the module and index
   public UGen getPatchIn() {return patchInSynComp.getPatchIn(patchInIndex);}
   public UGen getPatchOut() {return patchOutSynComp.getPatchOut(patchOutIndex);}
   
-  //Mutators for the components and indeces (in case patch cable is changed => unplugged and inserted elsewhere)
-  public void setPatchIn(SynthComponent inSC, int inIndex)
+  //Mutators for the modules and indeces (in case patch cable is changed => unplugged and inserted elsewhere)
+  public void setPatchIn(SynthModule inSC, int inIndex)
   {
     //First, unpatch the current UGen setup if it already exists
-    //NOTE: Output of "from" component patches input of "to" component
+    //NOTE: Output of "from" module patches input of "to" module
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).unpatch(patchInSynComp.getPatchIn(patchInIndex));
@@ -72,7 +72,7 @@ public class PatchCable
     //Set the variables
     patchInSynComp = inSC;
     patchInIndex = inIndex;
-    //Also store the cable pointer in the synth component
+    //Also store the cable pointer in the synth module
     if(patchInSynComp != null)
     {
       patchInSynComp.setCableIn(patchInIndex, this);
@@ -83,16 +83,16 @@ public class PatchCable
     patchIn_renderY = -1;
     
     //Next, patch the current UGen setup if the out patch already exists
-    //NOTE: Output of "from" component patches input of "to" component
+    //NOTE: Output of "from" module patches input of "to" module
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).patch(patchInSynComp.getPatchIn(patchInIndex));
     }
   }
-  public void setPatchOut(SynthComponent outSC, int outIndex)
+  public void setPatchOut(SynthModule outSC, int outIndex)
   {
     //First, unpatch the current UGen setup if it already exists
-    //NOTE: Output of "from" component patches input of "to" component
+    //NOTE: Output of "from" module patches input of "to" module
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).unpatch(patchInSynComp.getPatchIn(patchInIndex));
@@ -105,7 +105,7 @@ public class PatchCable
     //Set the variables
     patchOutSynComp = outSC;
     patchOutIndex = outIndex;
-    //Also store the cable pointer in the synth component
+    //Also store the cable pointer in the synth module
     if(patchOutSynComp != null)
     {
       patchOutSynComp.setCableOut(patchOutIndex, this);
@@ -116,7 +116,7 @@ public class PatchCable
     patchOut_renderY = -1;
     
     //Next, patch the current UGen setup if the in patch already exists
-    //NOTE: Output of "from" component patches input of "to" component
+    //NOTE: Output of "from" module patches input of "to" module
     if((patchOutSynComp != null) && (patchOutIndex >= 0) && (patchInSynComp != null) && (patchInIndex >= 0))
     {
       patchOutSynComp.getPatchOut(patchOutIndex).patch(patchInSynComp.getPatchIn(patchInIndex));
@@ -124,7 +124,7 @@ public class PatchCable
   }
   
   //Mutators for setting the global rendering positions
-  //  NOTE: Intended for use with SynthComponent's render(...) call only, but no "friend" functions in Processing
+  //  NOTE: Intended for use with SynthModule's render(...) call only, but no "friend" functions in Processing
   public void setRenderOut(int x, int y)
   {
     patchOut_renderX = x;
@@ -136,7 +136,7 @@ public class PatchCable
     patchIn_renderY = y;
   }
   
-  //Renders the patch cable, based on information provided from Synth Components
+  //Renders the patch cable, based on information provided from Synth Modules
   //NOTE: Renders globally due to passed-in information, use mouse if coordinates are -1
   public void render()
   {

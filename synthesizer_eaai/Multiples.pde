@@ -1,12 +1,12 @@
 /*Multiples.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 29
+Last Updated: 2022 January 20
 
-Class for a multiples component within a synthesized instrument.
-This component simply copies a wave input to allow multiple copies of it as outputs.
+Class for a multiples module within a synthesized instrument.
+This module simply copies a wave input to allow multiple copies of it as outputs.
 
-NOTE: To allow compact options (for component limit), have a 1->8 and a 2->4 version
+NOTE: To allow compact options (for module limit), have a 1->8 and a 2->4 version
 */
 
 //Processing only allows static content in a static class (rather than mixing)
@@ -32,9 +32,9 @@ public static class Multiples1to8_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_COPY7 + 1;
 }
 
-public class Multiples1to8 extends SynthComponent
+public class Multiples1to8 extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //A Summer that only has one input effectively copies the waveform (like an identity function)
   private Summer identity;
   
@@ -46,7 +46,7 @@ public class Multiples1to8 extends SynthComponent
     //  Luckily, we can make a static class with the static variables and use them!
     super(Multiples1to8_CONSTANTS.TOTAL_PATCHIN, Multiples1to8_CONSTANTS.TOTAL_PATCHOUT, Multiples1to8_CONSTANTS.TOTAL_KNOB);
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     identity = new Summer();
     
     //With the UGens all setup, fill in the external-facing ones for input/output
@@ -62,7 +62,7 @@ public class Multiples1to8 extends SynthComponent
     patchOut[Multiples1to8_CONSTANTS.PATCHOUT_COPY7] = patchIn[Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL];
   
     //Labels for the patches in the GUI
-    componentName = "Multiples (1->8)";
+    moduleName = "Multiples (1->8)";
     patchInLabel[Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL] = "WAVE IN";
     patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY0] = "WAVE OUT";
     patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY1] = "WAVE OUT";
@@ -74,7 +74,7 @@ public class Multiples1to8 extends SynthComponent
     patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY7] = "WAVE OUT";
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
@@ -106,9 +106,9 @@ public static class Multiples2to4_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_COPY13 + 1;
 }
 
-public class Multiples2to4 extends SynthComponent
+public class Multiples2to4 extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //A Summer that only has one input effectively copies the waveform (like an identity function)
   private Summer identity0;
   private Summer identity1;
@@ -121,7 +121,7 @@ public class Multiples2to4 extends SynthComponent
     //  Luckily, we can make a static class with the static variables and use them!
     super(Multiples2to4_CONSTANTS.TOTAL_PATCHIN, Multiples2to4_CONSTANTS.TOTAL_PATCHOUT, Multiples2to4_CONSTANTS.TOTAL_KNOB);
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     identity0 = new Summer();
     identity1 = new Summer();
     
@@ -139,7 +139,7 @@ public class Multiples2to4 extends SynthComponent
     patchOut[Multiples2to4_CONSTANTS.PATCHOUT_COPY13] = patchIn[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL1];
   
     //Labels for the patches in the GUI
-    componentName = "Multiples (2->4)";
+    moduleName = "Multiples (2->4)";
     patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (1)";
     patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (2)";
     patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY00] = "WAVE OUT (1)";
@@ -152,7 +152,7 @@ public class Multiples2to4 extends SynthComponent
     patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY13] = "WAVE OUT (2)";
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

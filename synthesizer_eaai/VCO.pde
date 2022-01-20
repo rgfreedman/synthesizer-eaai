@@ -1,10 +1,10 @@
 /*VCO.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 05
+Last Updated: 2022 January 20
 
-Class for a voltage-controlled oscillator (VCO) component within a synthesized instrument.
-This component simply generates waves with specified properties.
+Class for a voltage-controlled oscillator (VCO) module within a synthesized instrument.
+This module simply generates waves with specified properties.
 */
 
 //Processing only allows static content in a static class (rather than mixing)
@@ -31,9 +31,9 @@ public static class VCO_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_QUARTERPULSE + 1;
 }
 
-public class VCO extends SynthComponent
+public class VCO extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
   private Summer totalAmplitude;
@@ -62,7 +62,7 @@ public class VCO extends SynthComponent
     knobsLabel[VCO_CONSTANTS.KNOB_FREQ] = "FREQ";
     knobsLabel[VCO_CONSTANTS.KNOB_AMP] = "AMP";
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     totalFrequency = new Summer();
     totalAmplitude = new Summer();
     //NOTE: No frequency or amplitude for the output waveforms yet
@@ -92,9 +92,9 @@ public class VCO extends SynthComponent
     patchOutLabel[VCO_CONSTANTS.PATCHOUT_SAW] = "SAW WAVE";
     patchOutLabel[VCO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
     patchOutLabel[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
-    componentName = "VCO";
+    moduleName = "VCO";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[VCO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);
     knobs[VCO_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);
     totalFrequency.patch(out_sine.frequency);
@@ -111,7 +111,7 @@ public class VCO extends SynthComponent
     totalAmplitude.patch(out_quarterpulse.amplitude);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

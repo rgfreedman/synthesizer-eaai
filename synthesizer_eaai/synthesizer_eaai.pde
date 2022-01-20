@@ -1,9 +1,9 @@
 /*synthesizer_eaai.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 17
+Last Updated: 2022 January 20
 
-A synthesizer application that generates custom audio based on setup of various components.
+A synthesizer application that generates custom audio based on setup of various modules.
 Made possible using the Minim library (API at http://code.compartmental.net/minim/index_ugens.html)
 */
 
@@ -26,11 +26,11 @@ private int currentInstrument = -1;
 
 //Some variables to share target/focus information over time/between frames (like a short-term memory)
 private int mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of instrument with currently selected things via the mouse
-private int mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of SynthComponent currently selected with the mouse
-private int mouseTargetKnobIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of focused SynthComponent's currently selected knob with the mouse
+private int mouseTargetModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of SynthModule currently selected with the mouse
+private int mouseTargetKnobIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of focused SynthModule's currently selected knob with the mouse
 private int mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable currently selected with the mouse
 private int mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable currently selected with the mouse
-private int mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of patch cable of focus's previous component to which it was plugged in
+private int mousePrevModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of patch cable of focus's previous module to which it was plugged in
 private int mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of in patch cable of focus's previous patch entry to which it was plugged in
 private int mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX; //Index of out patch cable of focus's previous patch entry to which it was plugged in
 
@@ -231,7 +231,7 @@ public boolean realignKeyboard(boolean hand, int newIndex)
   //Make sure the newIndex value is valid (within bounds for at least one key on the hand)
   if(((newIndex + KEYS_PER_HAND) < 0) || (newIndex >= Render_CONSTANTS.KEYBOARD_KEYS_TOTAL)
      || (currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null)
-     || (instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
+     || (instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
   {
     return false;
   }
@@ -242,7 +242,7 @@ public boolean realignKeyboard(boolean hand, int newIndex)
   }
   
   //Grab the keyboard for the upcoming calls to change annotations
-  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
+  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
   
   //First get the original index to ensure that the old key annotations are cleared
   int prevIndex = (hand == LEFT_HAND) ? left_hand_curIndex : right_hand_curIndex;
@@ -316,7 +316,7 @@ public void resetKeyboardAnnotations()
 {
   //Make sure the newIndex value is valid (within bounds for at least one key on the hand)
   if((currentInstrument < 0) || (currentInstrument >= instruments.size()) || (instruments.get(currentInstrument) == null)
-     || (instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
+     || (instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX) == null))
   {
     return;
   }
@@ -327,7 +327,7 @@ public void resetKeyboardAnnotations()
   }
   
   //Grab the keyboard for the upcoming calls to change annotations
-  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
+  Keyboard k = (Keyboard)instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX);
   
   //Simply iterate over all the keys and set them to be blank
   for(int i = 0; i < midiNatural.length; i++)
@@ -509,76 +509,76 @@ void mousePressed()
   //Left click will add a patch, move a patch, or manipulate a knob
   if(mouseButton == LEFT)
   {
-    //Identify the component of focus for the current instrument
-    SynthComponent focus = instruments.get(currentInstrument).getSynthComponentAt(mouseX, mouseY);
+    //Identify the module of focus for the current instrument
+    SynthModule focus = instruments.get(currentInstrument).getSynthModuleAt(mouseX, mouseY);
     if(DEBUG_INTERFACE_MOUSE)
     {
-      print("\tLeft mouse pressed on component " + focus + "...\n");
+      print("\tLeft mouse pressed on module " + focus + "...\n");
     }
-    //If there is a target component in the focus, then determine whether a knob or patch was selected
+    //If there is a target module in the focus, then determine whether a knob or patch was selected
     if(focus != null)
     {
-      int topLeftX = instruments.get(currentInstrument).getComponentTopLeftX(focus);
-      int topLeftY = instruments.get(currentInstrument).getComponentTopLeftY(focus);
+      int topLeftX = instruments.get(currentInstrument).getModuleTopLeftX(focus);
+      int topLeftY = instruments.get(currentInstrument).getModuleTopLeftY(focus);
       int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
       
-      //If any element was found, then we will need the instrument and component indeces
-      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
+      //If any element was found, then we will need the instrument and module indeces
+      if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_NONE)
       {
         mouseTargetInstrumentIndex = currentInstrument;
-        mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus);
+        mouseTargetModuleIndex = instruments.get(currentInstrument).findSynthModuleIndex(focus);
       }
       
-      //When the focus element is a ComponentChooser object, then special case to add a component
-      if(focus instanceof ComponentChooser)
+      //When the focus element is a ModuleChooser object, then special case to add a module
+      if(focus instanceof ModuleChooser)
       {
-        //Compute the Component ID, which should correlate with the patch indeces
-        int componentID = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-        if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+        //Compute the Module ID, which should correlate with the patch indeces
+        int moduleID = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+        if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN)
         {
-          componentID = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          moduleID = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
         }
-        else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+        else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT)
         {
-          componentID = ComponentChooser_CONSTANTS.TOTAL_PATCHIN + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          moduleID = ModuleChooser_CONSTANTS.TOTAL_PATCHIN + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
         }
-        //If the ID exists, then add the corresponding component
-        if(componentID > CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
+        //If the ID exists, then add the corresponding module
+        if(moduleID > CustomInstrument_CONSTANTS.NO_SUCH_INDEX)
         {
-          commandAddComponent(mouseTargetInstrumentIndex, componentID, GUI_USER);
+          commandAddModule(mouseTargetInstrumentIndex, moduleID, GUI_USER);
         }
-        //We will not need the mouseTarget indeces after creating the component
+        //We will not need the mouseTarget indeces after creating the module
         mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-        mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+        mouseTargetModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
       }
       //When the press is on a knob, identify the position of the cursor over the knob's
       //  width to set the value---also store the information for any dragging until mouse release
-      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_KNOB)
+      else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_KNOB)
       {
-        mouseTargetKnobIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+        mouseTargetKnobIndex = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
         if(DEBUG_INTERFACE_MOUSE)
         {
           print("\t\tKnob " + mouseTargetKnobIndex + " was under the click\n");
         }
-        commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex, GUI_USER);
+        commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, GUI_USER);
       }
       //When the press is on an input patch, either create or readjust the patch cable---
       //  also store the information until mouse release to complete the patch
-      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+      else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN)
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
-          print("\t\tInput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+          print("\t\tInput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " was under the click\n");
         }
         //Null means no cable has been inserted yet to move => create a new patch cable and plug it in
-        if(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        if(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) == null)
         {
           //In case the move fails, note the lack of a previous connection so that it may be deleted
-          mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+          mousePrevModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The current focus in patch will serve as a reference to find the patch for adding in later
-          mouseTargetPatchInIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          mouseTargetPatchInIndex = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
           mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The patch cable is included now for the GUI to visualize
           instruments.get(currentInstrument).addPatchCable(new PatchCable(null, CustomInstrument_CONSTANTS.NO_SUCH_INDEX, focus, mouseTargetPatchInIndex));
@@ -587,35 +587,35 @@ void mousePressed()
         else
         {
           //In case the move fails, store the current patch assignment to be safe
-          mousePrevComponentIndex = mouseTargetComponentIndex;
-          mousePrevPatchInIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          mousePrevModuleIndex = mouseTargetModuleIndex;
+          mousePrevPatchInIndex = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
           mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The other end of the patch cable associated with this focus will be needed as a reference to find the patch later
           //  Conceptually, this is like adding a new patch cable where the out patch was selected first
-          mouseTargetPatchOutIndex = focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]).getPatchOutIndex();
-          mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]).getPatchOutComponent());
+          mouseTargetPatchOutIndex = focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]).getPatchOutIndex();
+          mouseTargetModuleIndex = instruments.get(currentInstrument).findSynthModuleIndex(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]).getPatchOutModule());
           mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //Unplug the selected patch cable for now so that it follows the mouse in the GUI
-          instruments.get(currentInstrument).unsetPatchIn(mousePrevComponentIndex, mousePrevPatchInIndex);
+          instruments.get(currentInstrument).unsetPatchIn(mousePrevModuleIndex, mousePrevPatchInIndex);
         }
       }
       //When the press is on an output patch, either create or readjust the patch cable---
       //  also store the information until mouse release to complete the patch
-      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+      else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT)
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
-          print("\t\tOutput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+          print("\t\tOutput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " was under the click\n");
         }
         //Null means no cable has been inserted yet to move => create a new patch cable and plug it in
-        if(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        if(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) == null)
         {
           //In case the move fails, note the lack of a previous connection so that it may be deleted
-          mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+          mousePrevModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The current focus in patch will serve as a reference to find the patch for adding in later
-          mouseTargetPatchOutIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          mouseTargetPatchOutIndex = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
           mouseTargetPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The patch cable is included now for the GUI to visualize
           instruments.get(currentInstrument).addPatchCable(new PatchCable(focus, mouseTargetPatchOutIndex, null, CustomInstrument_CONSTANTS.NO_SUCH_INDEX));
@@ -624,27 +624,27 @@ void mousePressed()
         else
         {
           //In case the move fails, store the current patch assignment to be safe
-          mousePrevComponentIndex = mouseTargetComponentIndex;
-          mousePrevPatchOutIndex = focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX];
+          mousePrevModuleIndex = mouseTargetModuleIndex;
+          mousePrevPatchOutIndex = focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX];
           mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //The other end of the patch cable associated with this focus will be needed as a reference to find the patch later
           //  Conceptually, this is like adding a new patch cable where the in patch was selected first
-          mouseTargetPatchInIndex = focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]).getPatchInIndex();
-          mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]).getPatchInComponent());
+          mouseTargetPatchInIndex = focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]).getPatchInIndex();
+          mouseTargetModuleIndex = instruments.get(currentInstrument).findSynthModuleIndex(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]).getPatchInModule());
           mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
           //Unplug the selected patch cable for now so that it follows the mouse in the GUI
-          instruments.get(currentInstrument).unsetPatchOut(mousePrevComponentIndex, mousePrevPatchOutIndex);
+          instruments.get(currentInstrument).unsetPatchOut(mousePrevModuleIndex, mousePrevPatchOutIndex);
         }
       }
       else
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
-          print("\t\tNo element in the component was under the click\n");
+          print("\t\tNo element in the module was under the click\n");
         }
       }
     }
-    //When no component is in the focus, then some extra functionality might exist in the
+    //When no module is in the focus, then some extra functionality might exist in the
     //  future, but nothing for now
     else
     {
@@ -682,7 +682,7 @@ void mouseDragged()
       {
         print("\tLeft mouse is dragging knob " + mouseTargetKnobIndex + "...\n");
       }
-      commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetKnobIndex, GUI_USER);
+      commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, GUI_USER);
     }
   }
 }
@@ -715,19 +715,19 @@ void mouseReleased()
     //If there is a selected patch cable, then finish inserting the cable first (if applicable)
     if((mouseTargetPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) || (mouseTargetPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
     {
-      //Identify the component of focus for the current instrument
-      SynthComponent focus = instruments.get(currentInstrument).getSynthComponentAt(mouseX, mouseY);
+      //Identify the module of focus for the current instrument
+      SynthModule focus = instruments.get(currentInstrument).getSynthModuleAt(mouseX, mouseY);
       if(DEBUG_INTERFACE_MOUSE)
       {
-        print("\tLeft mouse released on component " + focus + "...\n");
+        print("\tLeft mouse released on module " + focus + "...\n");
       }
       
       int[] focusDetails = null;
-      //If there is a target component in the focus, then determine whether a knob or patch was selected
+      //If there is a target module in the focus, then determine whether a knob or patch was selected
       if(focus != null)
       {
-        int topLeftX = instruments.get(currentInstrument).getComponentTopLeftX(focus);
-        int topLeftY = instruments.get(currentInstrument).getComponentTopLeftY(focus);
+        int topLeftX = instruments.get(currentInstrument).getModuleTopLeftX(focus);
+        int topLeftY = instruments.get(currentInstrument).getModuleTopLeftY(focus);
         focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
       }
       
@@ -739,36 +739,36 @@ void mouseReleased()
         //NOTE: If the patch completion fails, then this undo would happen anyways without the remaining steps to redo the changes
         
         //Get the patch cable from the patch out index, which will be needed
-        PatchCable pc = instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex).getCableOut(mouseTargetPatchOutIndex);
+        PatchCable pc = instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex).getCableOut(mouseTargetPatchOutIndex);
         
         //Use the previous target information to undo the partially-changed patch
-        if((mousePrevPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
+        if((mousePrevPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevModuleIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
         {
-          instruments.get(currentInstrument).setPatchIn(mousePrevComponentIndex, mousePrevPatchInIndex, pc);
+          instruments.get(currentInstrument).setPatchIn(mousePrevModuleIndex, mousePrevPatchInIndex, pc);
         }
         //This means removing it if no previous patch information
         else
         {
-          instruments.get(currentInstrument).unsetPatchOut(mouseTargetComponentIndex, mouseTargetPatchOutIndex);
+          instruments.get(currentInstrument).unsetPatchOut(mouseTargetModuleIndex, mouseTargetPatchOutIndex);
           instruments.get(currentInstrument).removePatchCable(pc);
         }
         
         //Mouse release needs to match the known patch-out with an unused patch-in; revert when not the case 
-        if((focusDetails == null) || (focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN) || ((focus != null) && (focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) != null)))
+        if((focusDetails == null) || (focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN) || ((focus != null) && (focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) != null)))
         {
           if(DEBUG_INTERFACE_MOUSE)
           {
             if(focusDetails == null)
             {
-              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because no focus information was found\n");
+              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because no focus information was found\n");
             }
-            else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+            else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN)
             {
-              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because mouse released on something that is not a patch in\n");
+              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because mouse released on something that is not a patch in\n");
             }
-            else if((focus != null) && (focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) != null))
+            else if((focus != null) && (focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) != null))
             {
-              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because mouse released on a patch in that is already in use\n");
+              print("\t\tCannot complete patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because mouse released on a patch in that is already in use\n");
             }
           }
           //Nothing else to do here because the undone process was already performed above this conditional statement
@@ -777,17 +777,17 @@ void mouseReleased()
         {
           if(DEBUG_INTERFACE_MOUSE)
           {
-            print("\t\tCompleting patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " to patch in " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " of " + focus + "\n");
+            print("\t\tCompleting patch from patch out " + mouseTargetPatchOutIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " to patch in " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " of " + focus + "\n");
           }
           //If there is previous target information, then the action is moving the selected patch
-          if((mousePrevPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
+          if((mousePrevPatchInIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevModuleIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
           {
-            commandMovePatchIn(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchInIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
+            commandMovePatchIn(mouseTargetInstrumentIndex, mousePrevModuleIndex, mousePrevPatchInIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
           }
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            commandNewPatch(mouseTargetInstrumentIndex, mouseTargetComponentIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
+            commandNewPatch(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
           }
         }
       }
@@ -797,37 +797,37 @@ void mouseReleased()
         //  those changes have to be redone in the actual newPatch or movePatchX calls => undo the changes first
         
         //Get the patch cable from the patch out index, which will be needed
-        PatchCable pc = instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex).getCableIn(mouseTargetPatchInIndex);
+        PatchCable pc = instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex).getCableIn(mouseTargetPatchInIndex);
         
         //NOTE: If the patch completion fails, then this undo would happen anyways without the remaining steps to redo the changes
         //Use the previous target information to undo the partially-changed patch
-        if((mousePrevPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
+        if((mousePrevPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevModuleIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
         {
-          instruments.get(currentInstrument).setPatchOut(mousePrevComponentIndex, mousePrevPatchOutIndex, pc);
+          instruments.get(currentInstrument).setPatchOut(mousePrevModuleIndex, mousePrevPatchOutIndex, pc);
         }
         //This means removing it if no previous patch information
         else
         {
-          instruments.get(currentInstrument).unsetPatchIn(mouseTargetComponentIndex, mouseTargetPatchInIndex);
+          instruments.get(currentInstrument).unsetPatchIn(mouseTargetModuleIndex, mouseTargetPatchInIndex);
           instruments.get(currentInstrument).removePatchCable(pc);
         }
           
         //Mouse release needs to match the known patch-in with an unused patch-out; revert when not the case
-        if((focusDetails == null) || (focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT) || ((focus != null) && (focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) != null)))
+        if((focusDetails == null) || (focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT) || ((focus != null) && (focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) != null)))
         {
           if(DEBUG_INTERFACE_MOUSE)
           {
             if(focusDetails == null)
             {
-              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because no focus information was found\n");
+              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because no focus information was found\n");
             }
-            else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+            else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT)
             {
-              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because mouse released on something that is not a patch out\n");
+              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because mouse released on something that is not a patch out\n");
             }
-            else if((focus != null) && (focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) != null))
+            else if((focus != null) && (focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) != null))
             {
-              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " because mouse released on a patch out that is already in use\n");
+              print("\t\tCannot complete patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " because mouse released on a patch out that is already in use\n");
             }
           }
           //Nothing else to do here because the undone process was already performed above this conditional statement
@@ -836,17 +836,17 @@ void mouseReleased()
         {
           if(DEBUG_INTERFACE_MOUSE)
           {
-            print("\t\tCompleting patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthComponent(mouseTargetComponentIndex) + " to patch out " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " of " + focus + "\n");
+            print("\t\tCompleting patch from patch in " + mouseTargetPatchInIndex + " of " + instruments.get(currentInstrument).getSynthModule(mouseTargetModuleIndex) + " to patch out " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " of " + focus + "\n");
           }
           //If there is previous target information, then the action is moving the selected patch
-          if((mousePrevPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevComponentIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
+          if((mousePrevPatchOutIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX) && (mousePrevModuleIndex > CustomInstrument_CONSTANTS.NO_SUCH_INDEX))
           {
-            commandMovePatchOut(mouseTargetInstrumentIndex, mousePrevComponentIndex, mousePrevPatchOutIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
+            commandMovePatchOut(mouseTargetInstrumentIndex, mousePrevModuleIndex, mousePrevPatchOutIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
           }
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            commandNewPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthComponentIndex(focus), focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], mouseTargetComponentIndex, mouseTargetPatchInIndex, GUI_USER);
+            commandNewPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], mouseTargetModuleIndex, mouseTargetPatchInIndex, GUI_USER);
           }
         }
       }
@@ -856,11 +856,11 @@ void mouseReleased()
     mouseTargetPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mousePrevPatchInIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     mousePrevPatchOutIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-    mousePrevComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+    mousePrevModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     
-    //Lastly, remove the focus on the instrument and component as well
+    //Lastly, remove the focus on the instrument and module as well
     mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-    mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+    mouseTargetModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
   }
 }
 
@@ -886,69 +886,69 @@ void mouseClicked()
   //Right click will delete something if removable
   if(mouseButton == RIGHT)
   {
-    //Identify the component of focus for the current instrument
-    SynthComponent focus = instruments.get(currentInstrument).getSynthComponentAt(mouseX, mouseY);
+    //Identify the module of focus for the current instrument
+    SynthModule focus = instruments.get(currentInstrument).getSynthModuleAt(mouseX, mouseY);
     if(DEBUG_INTERFACE_MOUSE)
     {
-      print("\tRight mouse pressed on component " + focus + "...\n");
+      print("\tRight mouse pressed on module " + focus + "...\n");
     }
-    //If there is a target component in the focus, then determine whether a knob or patch was selected
+    //If there is a target module in the focus, then determine whether a knob or patch was selected
     if(focus != null)
     {
-      int topLeftX = instruments.get(currentInstrument).getComponentTopLeftX(focus);
-      int topLeftY = instruments.get(currentInstrument).getComponentTopLeftY(focus);
+      int topLeftX = instruments.get(currentInstrument).getModuleTopLeftX(focus);
+      int topLeftY = instruments.get(currentInstrument).getModuleTopLeftY(focus);
       int[] focusDetails = focus.getElementAt(mouseX - topLeftX, mouseY - topLeftY);
       
-      //If any element was found, then we will need the instrument and component indeces
-      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE)
+      //If any element was found, then we will need the instrument and module indeces
+      if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] != Render_CONSTANTS.SYNTHMODULE_ELEMENT_NONE)
       {
         mouseTargetInstrumentIndex = currentInstrument;
-        mouseTargetComponentIndex = instruments.get(currentInstrument).findSynthComponentIndex(focus);
+        mouseTargetModuleIndex = instruments.get(currentInstrument).findSynthModuleIndex(focus);
       }
       
-      //When the reove button is identified, then remove the associated component from the instrument
-      if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_REMOVE)
+      //When the reove button is identified, then remove the associated module from the instrument
+      if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_REMOVE)
       {
-        commandRemoveComponent(mouseTargetInstrumentIndex, mouseTargetComponentIndex, GUI_USER);
+        commandRemoveModule(mouseTargetInstrumentIndex, mouseTargetModuleIndex, GUI_USER);
       }
       //When a patch is identified with an existing cable, then remove it from the instrument
-      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHIN)
+      else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHIN)
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
-          print("\t\tInput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+          print("\t\tInput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " was under the click\n");
         }
         //Null means no cable has been inserted yet => nothing to remove
-        if(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        if(focus.getCableIn(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) == null)
         {
         }
         //Otherwise, remove the patch cable
         else
         {
-          commandRemovePatchIn(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
+          commandRemovePatchIn(mouseTargetInstrumentIndex, mouseTargetModuleIndex, focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
         }
       }
-      else if(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT)
+      else if(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] == Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT)
       {
         if(DEBUG_INTERFACE_MOUSE)
         {
-          print("\t\tOutput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] + " was under the click\n");
+          print("\t\tOutput patch's cable " + focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] + " was under the click\n");
         }
         //Null means no cable has been inserted yet => nothing to remove
-        if(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX]) == null)
+        if(focus.getCableOut(focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX]) == null)
         {
         }
         //Otherwise, remove the patch cable
         else
         {
-          commandRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetComponentIndex, focusDetails[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX], GUI_USER);
+          commandRemovePatchOut(mouseTargetInstrumentIndex, mouseTargetModuleIndex, focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
         }
       }
-      //Since the removal of components and patches is a one-and-done operation, release the focus indeces
+      //Since the removal of modules and patches is a one-and-done operation, release the focus indeces
       mouseTargetInstrumentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
-      mouseTargetComponentIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
+      mouseTargetModuleIndex = CustomInstrument_CONSTANTS.NO_SUCH_INDEX;
     }
-    //When no component is in the focus, then some extra functionality might exist in the
+    //When no module is in the focus, then some extra functionality might exist in the
     //  future, but nothing for now
     else
     {
@@ -987,7 +987,7 @@ void keyPressed()
     //Bind this midi number to the key in case the keys change later
     guiKeyBindings.put(lowerCaseKey, midiIndex);
     //Highlight the specified key as well
-    ((Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], true);
+    ((Keyboard)instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], true);
     //Send the command to play the specified note
     commandStartNote(currentInstrument, midiNum[midiIndex], lowerCaseKey, GUI_USER);
   }
@@ -1033,7 +1033,7 @@ void keyReleased()
       commandStopNote(currentInstrument, 0.0, lowerCaseKey, GUI_USER);
     }
     //Undo the highlighting of the corresponding key on the keyboard
-    ((Keyboard)instruments.get(currentInstrument).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], false);
+    ((Keyboard)instruments.get(currentInstrument).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_highlight(midiNatural[midiIndex], midiKeyIndex[midiIndex], false);
     //Unbind this midi number from the key in case the keys change later
     guiKeyBindings.remove(lowerCaseKey);
   }
@@ -1258,132 +1258,132 @@ void keyTyped()
 /*---Functions for operating the interface elements with the mouse and/or keyboard---*/
 
 //Identify the mouse's horizontal position relative to the knob to set its position
-void commandAdjustKnob(int instrumentIndex, int componentIndex, int knobIndex, int userID)
+void commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getKnob(knobIndex) == null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getKnob(knobIndex) == null))
   {
     return;
   }
   
-  Knob k = instruments.get(instrumentIndex).getSynthComponent(componentIndex).getKnob(knobIndex);
+  Knob k = instruments.get(instrumentIndex).getSynthModule(moduleIndex).getKnob(knobIndex);
   int kTopLeftX = k.getTopLeftX();
   int kWidth = k.getWidth();
   //If too far to the left, then set the position to 0 (farthest left)
   if(mouseX < kTopLeftX)
   {
-    instruments.get(instrumentIndex).setKnob(componentIndex, knobIndex, 0.0);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 0.0);
   }
   //If too far to the right, then set the position to 1 (farthest right)
   else if(mouseX > (kTopLeftX + kWidth))
   {
-    instruments.get(instrumentIndex).setKnob(componentIndex, knobIndex, 1.0);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 1.0);
   }
   //When in the middle, interpolate position
   else
   {
-    instruments.get(instrumentIndex).setKnob(componentIndex, knobIndex, (float)(mouseX - kTopLeftX) / (float)kWidth);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, (float)(mouseX - kTopLeftX) / (float)kWidth);
   }
 }
 
 //Create a new patch and plug it into the instrument
-void commandNewPatch(int instrumentIndex, int componentOutIndex, int patchOutIndex, int componentInIndex, int patchInIndex, int userID)
+void commandNewPatch(int instrumentIndex, int moduleOutIndex, int patchOutIndex, int moduleInIndex, int patchInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchX is the UGen (should not be null), and getCableX is the PatchCable (should be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentOutIndex).getPatchOut(patchOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentOutIndex).getCableOut(patchOutIndex) != null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentInIndex).getPatchIn(patchInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentInIndex).getCableIn(patchInIndex) != null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex).getPatchOut(patchOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex).getCableOut(patchOutIndex) != null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex).getPatchIn(patchInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex).getCableIn(patchInIndex) != null))
   {
     return;
   }
   
   //Simply add the specified patch cable, generating a new object to pass in
-  instruments.get(instrumentIndex).addPatchCable(new PatchCable(instruments.get(instrumentIndex).getSynthComponent(componentOutIndex), patchOutIndex, instruments.get(instrumentIndex).getSynthComponent(componentInIndex), patchInIndex));
+  instruments.get(instrumentIndex).addPatchCable(new PatchCable(instruments.get(instrumentIndex).getSynthModule(moduleOutIndex), patchOutIndex, instruments.get(instrumentIndex).getSynthModule(moduleInIndex), patchInIndex));
 }
 
 //Take an existing patch and replug its output patch elsewhere in the instrument
-void commandMovePatchOut(int instrumentIndex, int componentFromOutIndex, int patchFromOutIndex, int componentToOutIndex, int patchToOutIndex, int userID)
+void commandMovePatchOut(int instrumentIndex, int moduleFromOutIndex, int patchFromOutIndex, int moduleToOutIndex, int patchToOutIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should be null in To, not null in From) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromOutIndex).getPatchOut(patchFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromOutIndex).getCableOut(patchFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToOutIndex).getPatchOut(patchToOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToOutIndex).getCableOut(patchToOutIndex) != null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getPatchOut(patchFromOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getCableOut(patchFromOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex).getPatchOut(patchToOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex).getCableOut(patchToOutIndex) != null))
   {
     return;
   }
   
   //Simply set the specified output patch cable, using the cable specified in From
-  instruments.get(instrumentIndex).setPatchOut(componentToOutIndex, patchToOutIndex, instruments.get(instrumentIndex).getSynthComponent(componentFromOutIndex).getCableOut(patchFromOutIndex));
+  instruments.get(instrumentIndex).setPatchOut(moduleToOutIndex, patchToOutIndex, instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getCableOut(patchFromOutIndex));
 }
 
 //Take an existing patch and replug its input patch elsewhere in the instrument
-void commandMovePatchIn(int instrumentIndex, int componentFromInIndex, int patchFromInIndex, int componentToInIndex, int patchToInIndex, int userID)
+void commandMovePatchIn(int instrumentIndex, int moduleFromInIndex, int patchFromInIndex, int moduleToInIndex, int patchToInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should be null in To, not null in From) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromInIndex).getPatchIn(patchFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentFromInIndex).getCableIn(patchFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToInIndex).getPatchIn(patchToInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentToInIndex).getCableIn(patchToInIndex) != null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getPatchIn(patchFromInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getCableIn(patchFromInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex).getPatchIn(patchToInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex).getCableIn(patchToInIndex) != null))
   {
     return;
   }
   
   //Simply set the specified output patch cable, using the cable specified in From
-  instruments.get(instrumentIndex).setPatchIn(componentToInIndex, patchToInIndex, instruments.get(instrumentIndex).getSynthComponent(componentFromInIndex).getCableIn(patchFromInIndex));
+  instruments.get(instrumentIndex).setPatchIn(moduleToInIndex, patchToInIndex, instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getCableIn(patchFromInIndex));
 }
 
 //Take an existing patch and remove it from the instrument
-void commandRemovePatchOut(int instrumentIndex, int componentIndex, int patchOutIndex, int userID)
+void commandRemovePatchOut(int instrumentIndex, int moduleIndex, int patchOutIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should not be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getPatchOut(patchOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableOut(patchOutIndex) == null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getPatchOut(patchOutIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableOut(patchOutIndex) == null))
   {
     return;
   }
   
   //Simply remove the patch cable with specified output
-  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableOut(patchOutIndex));
+  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableOut(patchOutIndex));
 }
 
 //Take an existing patch and remove it from the instrument
-void commandRemovePatchIn(int instrumentIndex, int componentIndex, int patchInIndex, int userID)
+void commandRemovePatchIn(int instrumentIndex, int moduleIndex, int patchInIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getPatchIn(patchInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableIn(patchInIndex) == null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getPatchIn(patchInIndex) == null)
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableIn(patchInIndex) == null))
   {
     return;
   }
   
   //Simply remove the patch cable with specified input
-  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthComponent(componentIndex).getCableIn(patchInIndex));
+  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableIn(patchInIndex));
 }
 
-//Adds a component to the instrument
-void commandAddComponent(int instrumentIndex, int componentID, int userID)
+//Adds a module to the instrument
+void commandAddModule(int instrumentIndex, int moduleID, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
@@ -1392,23 +1392,23 @@ void commandAddComponent(int instrumentIndex, int componentID, int userID)
     return;
   }
   
-  //Simply add the specified component
-  instruments.get(instrumentIndex).addSynthComponent(componentID);
+  //Simply add the specified module
+  instruments.get(instrumentIndex).addSynthModule(moduleID);
 }
 
-//Removes a component from the instrument
-void commandRemoveComponent(int instrumentIndex, int componentIndex, int userID)
+//Removes a module from the instrument
+void commandRemoveModule(int instrumentIndex, int moduleIndex, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthComponent(componentIndex) == null))
+     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null))
   {
     return;
   }
   
-  //Simply remove the specified component
-  instruments.get(instrumentIndex).removeSynthComponent(componentIndex);
+  //Simply remove the specified module
+  instruments.get(instrumentIndex).removeSynthModule(moduleIndex);
 }
 
 //Starts playing a note from the instrument (can be a key or a frequency assigned to the binding)
@@ -1432,7 +1432,7 @@ void commandStartNote(int instrumentIndex, float frequency, char binding, int us
   }
   
   //Simply start the note with the bound char value
-  int assigned = ((Keyboard)instruments.get(instrumentIndex).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_key(binding, frequency);
+  int assigned = ((Keyboard)instruments.get(instrumentIndex).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_key(binding, frequency);
   if(DEBUG_INTERFACE_KEYBOARD)
   {
     println("Tried to play frequency " + frequency + " with key binding " + binding + " -> result: " + assigned);
@@ -1460,7 +1460,7 @@ void commandStopNote(int instrumentIndex, float frequency, char binding, int use
   }
   
   //Simply start the note with the bound char value
-  boolean unassigned = ((Keyboard)instruments.get(instrumentIndex).getSynthComponent(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).unset_key(binding);
+  boolean unassigned = ((Keyboard)instruments.get(instrumentIndex).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).unset_key(binding);
   if(DEBUG_INTERFACE_KEYBOARD)
   {
     println("Tried to halt frequency " + frequency + " with key binding " + binding + " -> result: " + unassigned);

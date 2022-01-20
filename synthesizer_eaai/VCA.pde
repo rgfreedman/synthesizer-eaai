@@ -1,10 +1,10 @@
 /*VCA.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 22
+Last Updated: 2022 January 20
 
-Class for a voltage-controlled amplifier (VCA) component within a synthesized instrument.
-This component simply modifies the amplitude of an input wave.
+Class for a voltage-controlled amplifier (VCA) module within a synthesized instrument.
+This module simply modifies the amplitude of an input wave.
 */
 
 //Processing only allows static content in a static class (rather than mixing)
@@ -26,9 +26,9 @@ public static class VCA_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_WAVE + 1;
 }
 
-public class VCA extends SynthComponent
+public class VCA extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalAmplitude;
   //Multiplier performs the actual modification to the waveform's volume, and is output
@@ -48,7 +48,7 @@ public class VCA extends SynthComponent
     //Label for knob in GUI
     knobsLabel[VCA_CONSTANTS.KNOB_AMP] = "AMP";
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     totalAmplitude = new Summer();
     waveModifier = new Multiplier();
     
@@ -61,14 +61,14 @@ public class VCA extends SynthComponent
     patchInLabel[VCA_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
     patchInLabel[VCA_CONSTANTS.PATCHIN_AMP] = "AMP IN";
     patchOutLabel[VCA_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
-    componentName = "VCA";
+    moduleName = "VCA";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[VCA_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);
     totalAmplitude.patch(waveModifier.amplitude);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

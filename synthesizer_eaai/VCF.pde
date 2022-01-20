@@ -1,10 +1,10 @@
-/*VCO.pde
+/*VCF.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 November 15
+Last Updated: 2022 January 20
 
-Class for a voltage-controlled filter (VCF) component within a synthesized instrument.
-This component simply removes frequencies with respect to specified intervals (usually applies to noise inputs with a variety of frequencies).
+Class for a voltage-controlled filter (VCF) module within a synthesized instrument.
+This module simply removes frequencies with respect to specified intervals (usually applies to noise inputs with a variety of frequencies).
 */
 
 //Processing only allows static content in a static class (rather than mixing)
@@ -28,9 +28,9 @@ public static class VCF_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_WAVE + 1;
 }
 
-public class VCF extends SynthComponent
+public class VCF extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
   private Summer totalResonance;
@@ -56,7 +56,7 @@ public class VCF extends SynthComponent
     knobsLabel[VCF_CONSTANTS.KNOB_RES] = "RESONANCE";
     knobsLabel[VCF_CONSTANTS.KNOB_PASS] = "PASS";
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     totalFrequency = new Summer();
     totalResonance = new Summer();
     waveFilter = new MoogFilter(0.0, 0.0); //Low-pass filter by default, set via pass knob
@@ -72,9 +72,9 @@ public class VCF extends SynthComponent
     patchInLabel[VCF_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
     patchInLabel[VCF_CONSTANTS.PATCHIN_RES] = "RESONANCE IN";
     patchOutLabel[VCF_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
-    componentName = "VCF";
+    moduleName = "VCF";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[VCF_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);
     totalFrequency.patch(waveFilter.frequency);
     
@@ -82,7 +82,7 @@ public class VCF extends SynthComponent
     totalResonance.patch(waveFilter.resonance);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

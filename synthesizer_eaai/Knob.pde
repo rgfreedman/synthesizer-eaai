@@ -1,9 +1,9 @@
 /*Knob.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 December 30
+Last Updated: 2022 January 20
 
-Class for a knob found on a component within a synthesized instrument.  Simply has a 
+Class for a knob found on a module within a synthesized instrument.  Simply has a 
 current position, min/max interval, and ways to compute the value via interpolation 
 given a position and the interval.
 */

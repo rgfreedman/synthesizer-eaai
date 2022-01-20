@@ -1,10 +1,10 @@
 /*Keyboard.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 17
+Last Updated: 2022 January 20
 
-Class for a keyboard component within a synthesized instrument.
-This component sends frequency information for a pressed key that can act as dynamic
+Class for a keyboard module within a synthesized instrument.
+This module sends frequency information for a pressed key that can act as dynamic
 input to an oscillator, envelope, etc.  Includes polyphonic support for up to 10 pressed
 keys "at once" (need to press or release one key per frame, cannot be simultaneous).
 */
@@ -17,7 +17,7 @@ import java.util.HashMap;
 //  This contains the static constants for the VCO class below
 public static class Keyboard_CONSTANTS
 {
-  //Nothing to patch in, much like power (surprise, this component is effectively 
+  //Nothing to patch in, much like power (surprise, this module is effectively 
   //  10 power-like knobs under the hood)
   public static final int TOTAL_PATCHIN = 0;
   
@@ -56,9 +56,9 @@ public static class Keyboard_CONSTANTS
   public static final boolean HALFTONE_KEY = !NATURAL_KEY;
 }
 
-public class Keyboard extends SynthComponent
+public class Keyboard extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Each output will be a single, constant frequency whose value changes with key presses
   private Constant[] keys;
   //Paired with each key's frequency constant is a gate constant, which is 1 when a key is pressed and 0 when a key is not pressed
@@ -87,7 +87,7 @@ public class Keyboard extends SynthComponent
     //NOTE: Double the number of output patches to handle both keys and gates
     super(Keyboard_CONSTANTS.TOTAL_PATCHIN, Keyboard_CONSTANTS.TOTAL_PATCHOUT * 2, Keyboard_CONSTANTS.TOTAL_KNOB);
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     keys = new Constant[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
     gates = new Constant[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
@@ -105,9 +105,9 @@ public class Keyboard extends SynthComponent
       patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = "FREQ OUT";
       patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_GATE0 + i] = "GATE OUT";
     }
-    componentName = "Keyboard";
+    moduleName = "Keyboard";
     
-    //No patchwork for the internal components because each constant is independent of the others
+    //No patchwork for the internal modules because each constant is independent of the others
     
     //Setup the internal data structures for key management/polyphony
     availableKeys = new java.util.LinkedList();
@@ -125,7 +125,7 @@ public class Keyboard extends SynthComponent
     highlight_halftone = new boolean[Render_CONSTANTS.KEYBOARD_HALFTONE_TOTAL];
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
@@ -238,13 +238,13 @@ public class Keyboard extends SynthComponent
     }
   }
   
-  //Override the render command for SynthComponent superclass because the keyboard is
+  //Override the render command for SynthModule superclass because the keyboard is
   //  very different in design (show subset of patches and knobs, mostly keys) and 
-  //  should be part of all instruments (rather than as a possible component)
+  //  should be part of all instruments (rather than as a possible module)
   public void render(int xOffset, int yOffset)
   {
-    //As the lowest layer of the GUI image for the component,
-    //  render the component's box as a rectangle (rather than a component, fills lower border)
+    //As the lowest layer of the GUI image for the module,
+    //  render the module's box as a rectangle (rather than a module, fills lower border)
     stroke(0, 0, 0); //Black stroke
     strokeWeight(Render_CONSTANTS.DEFAULT_STROKE_WEIGHT);
     fill(128, 128, 128); //light-grey fill
@@ -252,15 +252,15 @@ public class Keyboard extends SynthComponent
     
     //All text should be centered about the specified (x,y) coordinates per text() call
     textAlign(CENTER, CENTER);
-    //Like font, set the size of all text on this component (measured in pixels)
+    //Like font, set the size of all text on this module (measured in pixels)
     //For simplicity, make the same size as a knob (since portrayed as a slider)
     textSize(Render_CONSTANTS.KNOB_HEIGHT);
     
-    //Next, render the component name in the top-center of the component
-    if(componentName != null)
+    //Next, render the module name in the top-center of the module
+    if(moduleName != null)
     {
       fill(0, 0, 0); //Black text
-      text(componentName, xOffset + (Render_CONSTANTS.LOWER_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
+      text(moduleName, xOffset + (Render_CONSTANTS.LOWER_BORDER_WIDTH / 2), yOffset + Render_CONSTANTS.KNOB_HEIGHT);
     }
     
     //Despite all the output patches, these are to allow instrument polyphony (simultaneous
@@ -273,7 +273,7 @@ public class Keyboard extends SynthComponent
     textSize(Render_CONSTANTS.KNOB_HEIGHT / 2);
     
     //Render a patch hole if a patch is defined in this entry
-    //  This is to avoid putting a cable into nothing, or can align holes to pretty-print component
+    //  This is to avoid putting a cable into nothing, or can align holes to pretty-print module
     if((patchOut != null) && (patchOut[Keyboard_CONSTANTS.PATCHOUT_KEY0] != null))
     {
       //If provided, include label for the patch
@@ -417,31 +417,31 @@ public class Keyboard extends SynthComponent
     halftoneAnnotationIndex--;
   }
   
-  //Override the getElementAt command for SynthComponent superclass because the keyboard
+  //Override the getElementAt command for SynthModule superclass because the keyboard
   //  is very different in design (show subset of patches and knobs, mostly keys) and 
-  //  should be part of all instruments (rather than as a possible component)
+  //  should be part of all instruments (rather than as a possible module)
   //Output format is a length-2 integer array: [element_type, index]
   //NOTE: The output format will have some helpful magic numbers defined in Render_CONSTANTS
-  //NOTE: The inputs x and y are relative to the top-left corner of this SynthComponent
+  //NOTE: The inputs x and y are relative to the top-left corner of this SynthModule
   public int[] getElementAt(int x, int y)
   {
     //Setup the output array first, fill in just before returning (set to default, the "null")
-    int[] toReturn = new int[Render_CONSTANTS.SYNTHCOMPONENT_TOTAL_FOCUS];
-    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_NONE;
-    toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = -1;
+    int[] toReturn = new int[Render_CONSTANTS.SYNTHMODULE_TOTAL_FOCUS];
+    toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_NONE;
+    toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = -1;
     
     //Only check for the provided first key/gate patch out; others are not displayed
     //The patch is just a circle
     if(Render_CONSTANTS.circ_contains_point(Render_CONSTANTS.LEFT_BORDER_WIDTH / 2, Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS), Render_CONSTANTS.PATCH_RADIUS, x, y))
     {
-      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT;
-      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = Keyboard_CONSTANTS.PATCHOUT_KEY0;
+      toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT;
+      toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = Keyboard_CONSTANTS.PATCHOUT_KEY0;
       return toReturn;
     }
     else if(Render_CONSTANTS.circ_contains_point((Render_CONSTANTS.LEFT_BORDER_WIDTH / 2), Render_CONSTANTS.KNOB_HEIGHT + (3 * Render_CONSTANTS.PATCH_RADIUS) + (2 * (Render_CONSTANTS.PATCH_DIAMETER + Render_CONSTANTS.VERT_SPACE)), Render_CONSTANTS.PATCH_RADIUS, x, y))
     {
-      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHCOMPONENT_ELEMENT_PATCHOUT;
-      toReturn[Render_CONSTANTS.SYNTHCOMPONENT_FOCUS_INDEX] = Keyboard_CONSTANTS.PATCHOUT_GATE0;
+      toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_ELEMENT] = Render_CONSTANTS.SYNTHMODULE_ELEMENT_PATCHOUT;
+      toReturn[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX] = Keyboard_CONSTANTS.PATCHOUT_GATE0;
       return toReturn;
     }
     

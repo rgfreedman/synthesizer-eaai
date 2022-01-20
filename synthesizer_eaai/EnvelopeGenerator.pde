@@ -1,10 +1,10 @@
 /*EnvelopeGenerator.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 January 11
+Last Updated: 2022 January 20
 
-Class for an envelope generator (EG) component within a synthesized instrument.
-This component modifies the amplitude of an input wave with a more complex pattern that
+Class for an envelope generator (EG) module within a synthesized instrument.
+This module modifies the amplitude of an input wave with a more complex pattern that
 is bound to a note structure (such as a keypress).
 To begin the envelope's application, the gate should receive a non-0 input.
 To end the envelope's application, the gate should receive a 0 input.
@@ -47,9 +47,9 @@ public static class EnvelopeGenerator_CONSTANTS
   public static final float THRESHOLD_GATE_PLAYNOTE = 0.001;
 }
 
-public class EnvelopeGenerator extends SynthComponent
+public class EnvelopeGenerator extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //ADSR generates the envelope that will modify the input waveform when a note plays
   private ADSR envelope;
   //This Sink is simply reading the values patched into it, which will determine when
@@ -90,7 +90,7 @@ public class EnvelopeGenerator extends SynthComponent
     knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_DECAY] = "DECAY";
     knobsLabel[EnvelopeGenerator_CONSTANTS.KNOB_RELEASE] = "RELEASE";
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     envelope = new ADSR(); //Knobs will be synced in the draw step before gate has first chance to play a note
     gate = new Summer();
     ground = new Sink();
@@ -105,9 +105,9 @@ public class EnvelopeGenerator extends SynthComponent
     patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
     patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_GATE] = "GATE";
     patchOutLabel[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
-    componentName = "Envelope Generator";
+    moduleName = "Envelope Generator";
     
-    //Patch internal components together (envelope and gate are disjoint, but gate needs ground)
+    //Patch internal modules together (envelope and gate are disjoint, but gate needs ground)
     gate.patch(ground);
     
     //No note is playing yet, and need to instantiate source of samples
@@ -115,7 +115,7 @@ public class EnvelopeGenerator extends SynthComponent
     recent_gate = new float[1];
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

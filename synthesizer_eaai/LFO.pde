@@ -1,10 +1,10 @@
 /*LFO.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 05
+Last Updated: 2022 January 20
 
-Class for a low-frequency oscillator (VCO) component within a synthesized instrument.
-This component simply generates waves with specified properties.  Unlike the VCO, the LFO
+Class for a low-frequency oscillator (VCO) module within a synthesized instrument.
+This module simply generates waves with specified properties.  Unlike the VCO, the LFO
 frequency knob is constrained to a smaller interval for more control of lower values
 (useful for creating rhythms and regulating steady patterns rather than making sounds).
 */
@@ -33,9 +33,9 @@ public static class LFO_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_QUARTERPULSE + 1;
 }
 
-public class LFO extends SynthComponent
+public class LFO extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
   private Summer totalAmplitude;
@@ -60,7 +60,7 @@ public class LFO extends SynthComponent
     knobs[LFO_CONSTANTS.KNOB_FREQ] = new Knob(0, 20); //Low frequency is usually up to 20 Hz (beats per second)
     knobs[LFO_CONSTANTS.KNOB_AMP] = new Knob(0.0, 1.0); //Amplitude is in [0,1]
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     totalFrequency = new Summer();
     totalAmplitude = new Summer();
     //NOTE: No frequency or amplitude for the output waveforms yet
@@ -82,7 +82,7 @@ public class LFO extends SynthComponent
     patchOut[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = out_quarterpulse;
     
     //Labels for the patches in the GUI
-    componentName = "LFO";
+    moduleName = "LFO";
     patchInLabel[LFO_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
     patchInLabel[LFO_CONSTANTS.PATCHIN_AMP] = "AMP";
     patchOutLabel[LFO_CONSTANTS.PATCHOUT_SINE] = "SINE WAVE";
@@ -92,7 +92,7 @@ public class LFO extends SynthComponent
     patchOutLabel[LFO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
     patchOutLabel[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[LFO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);
     knobs[LFO_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);
     totalFrequency.patch(out_sine.frequency);
@@ -109,7 +109,7 @@ public class LFO extends SynthComponent
     totalAmplitude.patch(out_quarterpulse.amplitude);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {

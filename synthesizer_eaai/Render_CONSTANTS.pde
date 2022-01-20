@@ -1,7 +1,7 @@
 /*Render_CONSTANTS.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2022 January 01
+Last Updated: 2022 January 17
 
 Class for constants that affect rendering components on the screen; edit the assigned
 values to alter how things display on the screen.
@@ -18,8 +18,8 @@ public static class Render_CONSTANTS
   public static final int APP_WIDTH = 1000;
   public static final int APP_HEIGHT = 800;
   
-  //Border about the components (to allow menu, keyboard display, output, and other
-  //  details that are per instrument or application, not a component itself)
+  //Border about the modules (to allow menu, keyboard display, output, and other
+  //  details that are per instrument or application, not a module itself)
   //NOTE: Defined as a proportion of the screen size
   public static final int UPPER_BORDER_WIDTH = APP_WIDTH;
   public static final int UPPER_BORDER_HEIGHT = APP_HEIGHT / 32;
@@ -33,33 +33,33 @@ public static class Render_CONSTANTS
   public static final int RIGHT_BORDER_WIDTH = APP_WIDTH / 8;
   public static final int RIGHT_BORDER_HEIGHT = APP_HEIGHT;
   
-  //For tiling components within an instrument: limits total components unless scrolling
+  //For tiling modules within an instrument: limits total modules unless scrolling
   //  is added as a later feature
   public static final int TILE_HORIZ_COUNT = 5;
   public static final int TILE_VERT_COUNT = 2;
-  public static final int MAX_SYNTH_COMPONENTS = TILE_HORIZ_COUNT * TILE_VERT_COUNT;
+  public static final int MAX_SYNTH_MODULES = TILE_HORIZ_COUNT * TILE_VERT_COUNT;
   
-  //An assumed limit to the number of in-patches, knobs, or out-patches in a single component
+  //An assumed limit to the number of in-patches, knobs, or out-patches in a single module
   //NOTE: These are not enforced, but used in computations for other constants below
   public static final int MAX_IN_PATCH = 9;
   public static final int MAX_OUT_PATCH = MAX_IN_PATCH;
   public static final int MAX_KNOB = 9;
   
-  //Uses static information above to do precomputations of component size information
+  //Uses static information above to do precomputations of module size information
   //NOTE: Do not edit these equations unless designing a new layout scheme
-  public static final int COMPONENT_WIDTH = (APP_WIDTH - LEFT_BORDER_WIDTH - RIGHT_BORDER_WIDTH) / TILE_HORIZ_COUNT;
-  public static final int COMPONENT_HEIGHT = (APP_HEIGHT - UPPER_BORDER_HEIGHT - LOWER_BORDER_HEIGHT) / TILE_VERT_COUNT;
+  public static final int MODULE_WIDTH = (APP_WIDTH - LEFT_BORDER_WIDTH - RIGHT_BORDER_WIDTH) / TILE_HORIZ_COUNT;
+  public static final int MODULE_HEIGHT = (APP_HEIGHT - UPPER_BORDER_HEIGHT - LOWER_BORDER_HEIGHT) / TILE_VERT_COUNT;
   
   //Sizes of the patches (circles) and knobs (rectangles, portray as a slider)
   //NOTE: Double number of max patches/knobs to account for their labels
-  public static final int PATCH_DIAMETER = min(COMPONENT_HEIGHT / (2 * (MAX_IN_PATCH + 1)), COMPONENT_WIDTH / 4);
+  public static final int PATCH_DIAMETER = min(MODULE_HEIGHT / (2 * (MAX_IN_PATCH + 1)), MODULE_WIDTH / 4);
   public static final int PATCH_RADIUS = PATCH_DIAMETER / 2;
-  public static final int KNOB_WIDTH = (COMPONENT_WIDTH * 2) / 5;
-  public static final int KNOB_HEIGHT = min(COMPONENT_HEIGHT / (2 * (MAX_KNOB + 1)), COMPONENT_WIDTH / 4);
+  public static final int KNOB_WIDTH = (MODULE_WIDTH * 2) / 5;
+  public static final int KNOB_HEIGHT = min(MODULE_HEIGHT / (2 * (MAX_KNOB + 1)), MODULE_WIDTH / 4);
   
-  //Size of remove button that appears on some components (to delete them)
-  public static final int REMOVEBUTTON_WIDTH = COMPONENT_WIDTH;
-  public static final int REMOVEBUTTON_HEIGHT = min(COMPONENT_HEIGHT - (int)(PATCH_DIAMETER * ((MAX_IN_PATCH * 2) + 1.5)), COMPONENT_HEIGHT / 10);
+  //Size of remove button that appears on some modules (to delete them)
+  public static final int REMOVEBUTTON_WIDTH = MODULE_WIDTH;
+  public static final int REMOVEBUTTON_HEIGHT = min(MODULE_HEIGHT - (int)(PATCH_DIAMETER * ((MAX_IN_PATCH * 2) + 1.5)), MODULE_HEIGHT / 10);
   
   //Size of patch cable parts (filling of hole and cord thickness)
   public static final int PATCH_PLUG_DIAMETER = max((PATCH_DIAMETER * 7) / 8, 5);
@@ -107,16 +107,16 @@ public static class Render_CONSTANTS
   //NOTE: Coordinates on screen and any shape's length should be non-negative if valid
   public static final int INVALID_VALUE = -1;
   
-  //The focus efforts in a SynthComponent object require a pair of element and index
+  //The focus efforts in a SynthModule object require a pair of element and index
   //IDs for elements
-  public static final int SYNTHCOMPONENT_ELEMENT_NONE = -1;
-  public static final int SYNTHCOMPONENT_ELEMENT_PATCHIN = SYNTHCOMPONENT_ELEMENT_NONE + 1;
-  public static final int SYNTHCOMPONENT_ELEMENT_KNOB = SYNTHCOMPONENT_ELEMENT_PATCHIN + 1;
-  public static final int SYNTHCOMPONENT_ELEMENT_PATCHOUT = SYNTHCOMPONENT_ELEMENT_KNOB + 1;
-  public static final int SYNTHCOMPONENT_ELEMENT_REMOVE = SYNTHCOMPONENT_ELEMENT_PATCHOUT + 1;
-  public static final int SYNTHCOMPONENT_TOTAL_ELEMENT = SYNTHCOMPONENT_ELEMENT_REMOVE + 1;
+  public static final int SYNTHMODULE_ELEMENT_NONE = -1;
+  public static final int SYNTHMODULE_ELEMENT_PATCHIN = SYNTHMODULE_ELEMENT_NONE + 1;
+  public static final int SYNTHMODULE_ELEMENT_KNOB = SYNTHMODULE_ELEMENT_PATCHIN + 1;
+  public static final int SYNTHMODULE_ELEMENT_PATCHOUT = SYNTHMODULE_ELEMENT_KNOB + 1;
+  public static final int SYNTHMODULE_ELEMENT_REMOVE = SYNTHMODULE_ELEMENT_PATCHOUT + 1;
+  public static final int SYNTHMODULE_TOTAL_ELEMENT = SYNTHMODULE_ELEMENT_REMOVE + 1;
   //Actual indeces in the output format that define the focus
-  public static final int SYNTHCOMPONENT_FOCUS_ELEMENT = 0;
-  public static final int SYNTHCOMPONENT_FOCUS_INDEX = SYNTHCOMPONENT_FOCUS_ELEMENT + 1;
-  public static final int SYNTHCOMPONENT_TOTAL_FOCUS = SYNTHCOMPONENT_FOCUS_INDEX + 1;
+  public static final int SYNTHMODULE_FOCUS_ELEMENT = 0;
+  public static final int SYNTHMODULE_FOCUS_INDEX = SYNTHMODULE_FOCUS_ELEMENT + 1;
+  public static final int SYNTHMODULE_TOTAL_FOCUS = SYNTHMODULE_FOCUS_INDEX + 1;
 }

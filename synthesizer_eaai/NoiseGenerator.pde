@@ -1,10 +1,10 @@
 /*NoiseGenerator.pde
 
 Written by: Richard (Rick) G. Freedman
-Last Updated: 2021 August 06
+Last Updated: 2022 January 20
 
-Class for a noise-generating oscillator component within a synthesized instrument.
-This component simply generates noise with specified properties.  Unlike the VCO and LFO,
+Class for a noise-generating oscillator module within a synthesized instrument.
+This module simply generates noise with specified properties.  Unlike the VCO and LFO,
 the output is noise rather than a single tone.
 */
 
@@ -27,9 +27,9 @@ public static class NoiseGenerator_CONSTANTS
   public static final int TOTAL_PATCHOUT = PATCHOUT_BROWN + 1;
 }
 
-public class NoiseGenerator extends SynthComponent
+public class NoiseGenerator extends SynthModule
 {
-  //Internal UGen Objects that compose the component's "circuit"
+  //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalAmplitude;
   
@@ -52,7 +52,7 @@ public class NoiseGenerator extends SynthComponent
     //Label for the knob in the GUI
     knobsLabel[NoiseGenerator_CONSTANTS.KNOB_AMP] = "AMP";
 
-    //Set up the internals of the component with the UGen elements from Minim
+    //Set up the internals of the module with the UGen elements from Minim
     totalAmplitude = new Summer();
     //NOTE: No frequency or amplitude for the output waveforms yet
     out_white = new Noise(0.0, Noise.Tint.WHITE);
@@ -70,16 +70,16 @@ public class NoiseGenerator extends SynthComponent
     patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_WHITE] = "WHITE NOISE";
     patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_PINK] = "PINK NOISE";
     patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = "BROWN NOISE";
-    componentName = "Noise Generator";
+    moduleName = "Noise Generator";
     
-    //Setup the patchwork for the internal components
+    //Setup the patchwork for the internal modules
     knobs[NoiseGenerator_CONSTANTS.KNOB_AMP].getCurrentValue().patch(totalAmplitude);
     totalAmplitude.patch(out_white.amplitude);
     totalAmplitude.patch(out_pink.amplitude);
     totalAmplitude.patch(out_brown.amplitude);
   }
   
-  //Implement in each component to do any per-draw-iteration updates
+  //Implement in each module to do any per-draw-iteration updates
   //  This will usually be setting values based on knobs, etc.
   public void draw_update()
   {
