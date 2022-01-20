@@ -26,6 +26,10 @@ public static class Power_CONSTANTS
 
 public class Power extends SynthModule
 {
+  //Internal UGen Objects that compose the module's "circuit"
+  //Output for frequency is assumed to be in Hertz, but need in volts
+  private Multiplier toVolts;
+  
   //Default Constructor - set up the knob and pipe its oscillator to the output patch
   public Power()
   {
@@ -35,13 +39,17 @@ public class Power extends SynthModule
     super(Power_CONSTANTS.TOTAL_PATCHIN, Power_CONSTANTS.TOTAL_PATCHOUT, Power_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knob
-    knobs[Power_CONSTANTS.KNOB_POWER] = new Knob(0, 6000); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
+    knobs[Power_CONSTANTS.KNOB_POWER] = new Knob(0, Audio_CONSTANTS.MAX_FREQ); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     
     //Label for the knob in the GUI
     knobsLabel[Power_CONSTANTS.KNOB_POWER] = "FREQ";
     
+    //Patch the knob's UGen into toVolts for proper output conversion
+    toVolts = new Multiplier(Audio_CONSTANTS.MAX_FREQ / Audio_CONSTANTS.MAX_VOLT);
+    knobs[Power_CONSTANTS.KNOB_POWER].getCurrentValue().patch(toVolts);
+    
     //The patchable output is simply the knob's value, noting how much voltage (frequency) to send
-    patchOut[Power_CONSTANTS.PATCHOUT_POWER] = knobs[Power_CONSTANTS.KNOB_POWER].getCurrentValue();
+    patchOut[Power_CONSTANTS.PATCHOUT_POWER] = toVolts;
     
     //Label for the patch in the GUI
     patchOutLabel[Power_CONSTANTS.PATCHOUT_POWER] = "FREQ OUT";

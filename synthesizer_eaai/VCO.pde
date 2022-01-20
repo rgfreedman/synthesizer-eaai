@@ -37,6 +37,8 @@ public class VCO extends SynthModule
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
   private Summer totalAmplitude;
+  //Input for frequency is assumed to be in volts, but need in Hertz
+  private Multiplier fromVolts;
   
   //Oscillators for each wave output
   private Oscil out_sine;
@@ -55,7 +57,7 @@ public class VCO extends SynthModule
     super(VCO_CONSTANTS.TOTAL_PATCHIN, VCO_CONSTANTS.TOTAL_PATCHOUT, VCO_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
-    knobs[VCO_CONSTANTS.KNOB_FREQ] = new Knob(0, 6000); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
+    knobs[VCO_CONSTANTS.KNOB_FREQ] = new Knob(Audio_CONSTANTS.MIN_FREQ, Audio_CONSTANTS.MAX_FREQ); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     knobs[VCO_CONSTANTS.KNOB_AMP] = new Knob(0.0, 1.0); //Amplitude is in [0,1]
     
     //Labels for knobs in GUI
@@ -65,6 +67,8 @@ public class VCO extends SynthModule
     //Set up the internals of the module with the UGen elements from Minim
     totalFrequency = new Summer();
     totalAmplitude = new Summer();
+    fromVolts = new Multiplier(Audio_CONSTANTS.MAX_FREQ / Audio_CONSTANTS.MAX_VOLT);
+    fromVolts.patch(totalFrequency);
     //NOTE: No frequency or amplitude for the output waveforms yet
     out_sine = new Oscil(0.0, 0.0, Waves.SINE);
     out_square = new Oscil(0.0, 0.0, Waves.SQUARE);
@@ -74,7 +78,7 @@ public class VCO extends SynthModule
     out_quarterpulse = new Oscil(0.0, 0.0, Waves.QUARTERPULSE);
     
     //With the UGens all setup, fill in the external-facing ones for input/output
-    patchIn[VCO_CONSTANTS.PATCHIN_FREQ] = totalFrequency;
+    patchIn[VCO_CONSTANTS.PATCHIN_FREQ] = fromVolts;
     patchIn[VCO_CONSTANTS.PATCHIN_AMP] = totalAmplitude;
     patchOut[VCO_CONSTANTS.PATCHOUT_SINE] = out_sine;
     patchOut[VCO_CONSTANTS.PATCHOUT_SQUARE] = out_square;

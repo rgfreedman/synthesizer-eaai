@@ -71,12 +71,12 @@ public class EnvelopeGenerator extends SynthModule
     super(EnvelopeGenerator_CONSTANTS.TOTAL_PATCHIN, EnvelopeGenerator_CONSTANTS.TOTAL_PATCHOUT, EnvelopeGenerator_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
-    //The amplitude value knobs are bound to [0,1]
-    knobs[EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP] = new Knob(0.0, 1.0);
-    knobs[EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP] = new Knob(0.0, 1.0);
-    knobs[EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN] = new Knob(0.0, 1.0);
-    knobs[EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP] = new Knob(0.0, 1.0);
-    //The time duration knobs are bound to [0,3] since it is unlikely to have longer notes
+    //The amplitude value knobs are bound based on voltage (for frequency modulation purposes), but should be [0,1] for actual volume's sake
+    knobs[EnvelopeGenerator_CONSTANTS.KNOB_STARTAMP] = new Knob(0.0, max(1.0, Audio_CONSTANTS.MAX_VOLT / 2.0));
+    knobs[EnvelopeGenerator_CONSTANTS.KNOB_MAXAMP] = new Knob(0.0, max(1.0, Audio_CONSTANTS.MAX_VOLT / 2.0));
+    knobs[EnvelopeGenerator_CONSTANTS.KNOB_SUSTAIN] = new Knob(0.0, max(1.0, Audio_CONSTANTS.MAX_VOLT / 2.0));
+    knobs[EnvelopeGenerator_CONSTANTS.KNOB_ENDAMP] = new Knob(0.0, max(1.0, Audio_CONSTANTS.MAX_VOLT / 2.0));
+    //The time duration knobs are bound to [0,3] seconds since it is unlikely to have longer notes
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_ATTACK] = new Knob(0.0, 3.0);
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_DECAY] = new Knob(0.0, 3.0);
     knobs[EnvelopeGenerator_CONSTANTS.KNOB_RELEASE] = new Knob(0.0, 3.0);

@@ -1426,7 +1426,7 @@ void commandStartNote(int instrumentIndex, float frequency, char binding, int us
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (frequency < 0) || (frequency > 6000))
+     || (frequency < Audio_CONSTANTS.MIN_FREQ) || (frequency > Audio_CONSTANTS.MAX_FREQ))
   {
     return;
   }
@@ -1454,7 +1454,7 @@ void commandStopNote(int instrumentIndex, float frequency, char binding, int use
   //Make sure the indeces all exist and are not null before beginning
   //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (frequency < 0) || (frequency > 6000))
+     || (frequency < Audio_CONSTANTS.MIN_FREQ) || (frequency > Audio_CONSTANTS.MAX_FREQ))
   {
     return;
   }

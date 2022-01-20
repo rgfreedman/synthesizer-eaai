@@ -61,6 +61,8 @@ public class Keyboard extends SynthModule
   //Internal UGen Objects that compose the module's "circuit"
   //Each output will be a single, constant frequency whose value changes with key presses
   private Constant[] keys;
+  //Use a multiplier to convert the keys' frequency into voltage
+  private Multiplier[] toVolts;
   //Paired with each key's frequency constant is a gate constant, which is 1 when a key is pressed and 0 when a key is not pressed
   private Constant[] gates;
   
@@ -89,17 +91,21 @@ public class Keyboard extends SynthModule
 
     //Set up the internals of the module with the UGen elements from Minim
     keys = new Constant[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
+    toVolts = new Multiplier[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
     gates = new Constant[Keyboard_CONSTANTS.TOTAL_PATCHOUT];
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
     {
       keys[i] = new Constant(0.0);
+      toVolts[i] = new Multiplier(Audio_CONSTANTS.MAX_VOLT / Audio_CONSTANTS.MAX_FREQ);
+      //Might as well patch the key's constant to the multiplier now
+      keys[i].patch(toVolts[i]);
       gates[i] = new Constant(0.0);
     }
     
     //With the UGens all setup, fill in the external-facing ones for input/output
     for(int i = Keyboard_CONSTANTS.PATCHOUT_KEY0; i < Keyboard_CONSTANTS.TOTAL_PATCHOUT; i++)
     {
-      patchOut[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = keys[i];
+      patchOut[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = toVolts[i];
       patchOut[Keyboard_CONSTANTS.PATCHOUT_GATE0 + i] = gates[i];
       //Label for the GUI
       patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = "FREQ OUT";

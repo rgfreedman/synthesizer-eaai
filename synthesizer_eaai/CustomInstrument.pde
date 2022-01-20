@@ -113,22 +113,28 @@ public class CustomInstrument implements Instrument
   //  global Summer that's plugged into the output]
   public void noteOn(float dur)
   {
+    //NOTE: This should call set_key, but a note is assumed to already be assigned...
+    /*
     SynthModule[] taoClones = polyphonicCompClones.get(toAudioOutput);
     for(int i = 0; i < taoClones.length; i++)
     {
       taoClones[i].getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).patch(allInstruments_toOut);
     }
+    */
   }
   
   //Unpatch the summer from the audio output [a.k.a. unplug the local Summer 
   //  from the global Summer that's plugged into the output]
   public void noteOff()
   {
+    //NOTE: This should call unset_key, but a note is assumed to already be assigned...
+    /*
     SynthModule[] taoClones = polyphonicCompClones.get(toAudioOutput);
     for(int i = 0; i < taoClones.length; i++)
     {
       taoClones[i].getPatchOut(MixerInstrument_CONSTANTS.PATCHOUT_MERGE).unpatch(allInstruments_toOut);
     }
+    */
   }
   
   //Performs updates to the instrument (via updates to each module) in the draw iteration

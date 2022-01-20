@@ -38,6 +38,8 @@ public class LFO extends SynthModule
   //Internal UGen Objects that compose the module's "circuit"
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
+  //Inputs for frequency are assumed to be in volts, but need in Hertz
+  private Multiplier fromVolts;
   private Summer totalAmplitude;
   
   //Oscillators for each wave output
@@ -62,6 +64,8 @@ public class LFO extends SynthModule
 
     //Set up the internals of the module with the UGen elements from Minim
     totalFrequency = new Summer();
+    fromVolts = new Multiplier(Audio_CONSTANTS.MAX_FREQ / Audio_CONSTANTS.MAX_VOLT);
+    fromVolts.patch(totalFrequency);
     totalAmplitude = new Summer();
     //NOTE: No frequency or amplitude for the output waveforms yet
     out_sine = new Oscil(0.0, 0.0, Waves.SINE);
@@ -72,7 +76,7 @@ public class LFO extends SynthModule
     out_quarterpulse = new Oscil(0.0, 0.0, Waves.QUARTERPULSE);
     
     //With the UGens all setup, fill in the external-facing ones for input/output
-    patchIn[LFO_CONSTANTS.PATCHIN_FREQ] = totalFrequency;
+    patchIn[LFO_CONSTANTS.PATCHIN_FREQ] = fromVolts;
     patchIn[LFO_CONSTANTS.PATCHIN_AMP] = totalAmplitude;
     patchOut[LFO_CONSTANTS.PATCHOUT_SINE] = out_sine;
     patchOut[LFO_CONSTANTS.PATCHOUT_SQUARE] = out_square;

@@ -34,6 +34,8 @@ public class VCF extends SynthModule
   //Summer combines the input patch and knob values when mapping to the same feature
   private Summer totalFrequency;
   private Summer totalResonance;
+  //Input for frequency is assumed to be in volts, but need in Hertz
+  private Multiplier fromVolts;
   
   //MoogFilter performs the actual modification to the waveform's volume, and is output
   private MoogFilter waveFilter;
@@ -47,7 +49,7 @@ public class VCF extends SynthModule
     super(VCF_CONSTANTS.TOTAL_PATCHIN, VCF_CONSTANTS.TOTAL_PATCHOUT, VCF_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
-    knobs[VCF_CONSTANTS.KNOB_FREQ] = new Knob(0.0, 6000.0); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
+    knobs[VCF_CONSTANTS.KNOB_FREQ] = new Knob(Audio_CONSTANTS.MIN_FREQ, Audio_CONSTANTS.MAX_FREQ); //Audible frequencies... 22000 hurts the ears... piano goes to about 4200... let's cap it off just a bit above that
     knobs[VCF_CONSTANTS.KNOB_RES] = new Knob(0.0, 1.0); //Resonance is in [0,1]
     knobs[VCF_CONSTANTS.KNOB_PASS] = new Knob(0.0, 3.0); //Resonance is in {0,1,2}, which is based on truncation from [0,3)
     
@@ -60,10 +62,13 @@ public class VCF extends SynthModule
     totalFrequency = new Summer();
     totalResonance = new Summer();
     waveFilter = new MoogFilter(0.0, 0.0); //Low-pass filter by default, set via pass knob
+    fromVolts = new Multiplier(Audio_CONSTANTS.MAX_FREQ / Audio_CONSTANTS.MAX_VOLT);
+    //Converts the volts to Hertz before reaching frequency
+    fromVolts.patch(totalFrequency);
     
     //With the UGens all setup, fill in the external-facing ones for input/output
     patchIn[VCF_CONSTANTS.PATCHIN_WAVE] = waveFilter;
-    patchIn[VCF_CONSTANTS.PATCHIN_FREQ] = totalFrequency;
+    patchIn[VCF_CONSTANTS.PATCHIN_FREQ] = fromVolts;
     patchIn[VCF_CONSTANTS.PATCHIN_RES] = totalResonance;
     patchOut[VCF_CONSTANTS.PATCHOUT_WAVE] = waveFilter;
     
