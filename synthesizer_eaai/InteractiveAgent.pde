@@ -28,7 +28,7 @@ void setup_agent()
   commandStartNote(int instrumentIndex, float frequency, char binding, int userID) //same as above, but can specify a frequency that might not correspond to a specific MIDI index
   commandStopNote(int instrumentIndex, int midiValue, char binding, int userID) //binding can be any character, but need to match the one that started the corresponding note
   commandStopNote(int instrumentIndex, float frequency, char binding, int userID) //same as above, but can specify a frequency that might not correspond to a specific MIDI index
-  commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int userID)
+  commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, float position, int userID)
   commandAddPatch(int instrumentIndex, int moduleOutIndex, int patchOutIndex, int moduleInIndex, int patchInIndex, int userID)
   commandMovePatchOut(int instrumentIndex, int moduleFromOutIndex, int patchFromOutIndex, int moduleToOutIndex, int patchToOutIndex, int userID)
   commandMovePatchIn(int instrumentIndex, int moduleFromInIndex, int patchFromInIndex, int moduleToInIndex, int patchToInIndex, int userID)
@@ -47,7 +47,7 @@ void draw_agent()
   commandStartNote(int instrumentIndex, float frequency, char binding, int userID) //same as above, but can specify a frequency that might not correspond to a specific MIDI index
   commandStopNote(int instrumentIndex, int midiValue, char binding, int userID) //binding can be any character, but need to match the one that started the corresponding note
   commandStopNote(int instrumentIndex, float frequency, char binding, int userID) //same as above, but can specify a frequency that might not correspond to a specific MIDI index
-  commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int userID)
+  commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, float position, int userID)
   commandAddPatch(int instrumentIndex, int moduleOutIndex, int patchOutIndex, int moduleInIndex, int patchInIndex, int userID)
   commandMovePatchOut(int instrumentIndex, int moduleFromOutIndex, int patchFromOutIndex, int moduleToOutIndex, int patchToOutIndex, int userID)
   commandMovePatchIn(int instrumentIndex, int moduleFromInIndex, int patchFromInIndex, int moduleToInIndex, int patchToInIndex, int userID)
@@ -77,8 +77,8 @@ void reportStopNote(int instrumentIndex, float frequency, int userID)
 }
 
 //Things the interactive intelligent agent should do when a knob is adjusted
-//NOTE: value is the actual number to which the knob was set, not the position
-void reportAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, float value, int userID)
+//NOTE: position is the amount the knob is turned, not its actual value
+void reportAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, float position, int userID)
 {
   //This means a human turned the GUI knob
   if(userID == GUI_USER)
@@ -144,8 +144,8 @@ void reportRemoveModule(int instrumentIndex, int moduleIndex, int userID)
 
 /*---Methods for operating the interface elements with the mouse and/or keyboard---*/
 
-//Identify the mouse's horizontal position relative to the knob to set its position
-void commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int userID)
+//Set a knob's position
+void commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, float position, int userID)
 {
   //Make sure the indeces all exist and are not null before beginning
   if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
@@ -156,26 +156,26 @@ void commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int 
   }
   
   Knob k = instruments.get(instrumentIndex).getSynthModule(moduleIndex).getKnob(knobIndex);
-  int kTopLeftX = k.getTopLeftX();
-  int kWidth = k.getWidth();
-  //If too far to the left, then set the position to 0 (farthest left)
-  if(mouseX < kTopLeftX)
+  float kMinPos = k.getMinimumPosition();
+  float kMaxPos = k.getMaximumPosition();
+  //If too small, then set the position to min
+  if(position < kMinPos)
   {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 0.0);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, kMinPos);
   }
-  //If too far to the right, then set the position to 1 (farthest right)
-  else if(mouseX > (kTopLeftX + kWidth))
+  //If too large, then set the position to max
+  else if(position > kMaxPos)
   {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 1.0);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, kMaxPos);
   }
-  //When in the middle, interpolate position
+  //When in the middle, use position
   else
   {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, (float)(mouseX - kTopLeftX) / (float)kWidth);
+    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, position);
   }
   
   //Report the performed action for interactive intelligent agents to process
-  reportAdjustKnob(instrumentIndex, moduleIndex, knobIndex, k.getCurrentValue_float(), userID);
+  reportAdjustKnob(instrumentIndex, moduleIndex, knobIndex, position, userID);
 }
 
 //Create a new patch and plug it into the instrument

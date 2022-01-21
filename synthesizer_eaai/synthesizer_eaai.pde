@@ -562,7 +562,8 @@ void mousePressed()
         {
           print("\t\tKnob " + mouseTargetKnobIndex + " was under the click\n");
         }
-        commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, GUI_USER);
+        Knob k = instruments.get(mouseTargetInstrumentIndex).getSynthModule(mouseTargetModuleIndex).getKnob(mouseTargetKnobIndex);
+        commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, (float)(mouseX - k.getTopLeftX()) / (float)k.getWidth(), GUI_USER);
       }
       //When the press is on an input patch, either create or readjust the patch cable---
       //  also store the information until mouse release to complete the patch
@@ -684,7 +685,8 @@ void mouseDragged()
       {
         print("\tLeft mouse is dragging knob " + mouseTargetKnobIndex + "...\n");
       }
-      commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, GUI_USER);
+      Knob k = instruments.get(mouseTargetInstrumentIndex).getSynthModule(mouseTargetModuleIndex).getKnob(mouseTargetKnobIndex);
+      commandAdjustKnob(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetKnobIndex, (float)(mouseX - k.getTopLeftX()) / (float)k.getWidth(), GUI_USER);
     }
   }
 }
