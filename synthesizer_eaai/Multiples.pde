@@ -63,15 +63,15 @@ public class Multiples1to8 extends SynthModule
   
     //Labels for the patches in the GUI
     moduleName = "Multiples (1->8)";
-    patchInLabel[Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL] = "WAVE IN";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY0] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY1] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY2] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY3] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY4] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY5] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY6] = "WAVE OUT";
-    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY7] = "WAVE OUT";
+    patchInLabel[Multiples1to8_CONSTANTS.PATCHIN_ORIGINAL] = "IN (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY0] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY1] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY2] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY3] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY4] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY5] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY6] = "OUT (0)";
+    patchOutLabel[Multiples1to8_CONSTANTS.PATCHOUT_COPY7] = "OUT (0)";
   }
   
   //Implement in each module to do any per-draw-iteration updates
@@ -87,8 +87,9 @@ public class Multiples1to8 extends SynthModule
 public static class Multiples2to4_CONSTANTS
 {
   //Indeces for input patches - this is the original wave to copy
+  //NOTE: Offset in index allows nicer spacing
   public static final int PATCHIN_ORIGINAL0 = 0;
-  public static final int PATCHIN_ORIGINAL1 = PATCHIN_ORIGINAL0 + 1;
+  public static final int PATCHIN_ORIGINAL1 = 4; //PATCHIN_ORIGINAL0 + 1;
   public static final int TOTAL_PATCHIN = PATCHIN_ORIGINAL1 + 1;
   
   //No knobs
@@ -140,16 +141,16 @@ public class Multiples2to4 extends SynthModule
   
     //Labels for the patches in the GUI
     moduleName = "Multiples (2->4)";
-    patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (1)";
-    patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (2)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY00] = "WAVE OUT (1)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY01] = "WAVE OUT (1)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY02] = "WAVE OUT (1)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY03] = "WAVE OUT (1)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY10] = "WAVE OUT (2)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY11] = "WAVE OUT (2)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY12] = "WAVE OUT (2)";
-    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY13] = "WAVE OUT (2)";
+    patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL0] = "IN (0)";
+    patchInLabel[Multiples2to4_CONSTANTS.PATCHIN_ORIGINAL1] = "IN (1)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY00] = "OUT (0)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY01] = "OUT (0)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY02] = "OUT (0)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY03] = "OUT (0)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY10] = "OUT (1)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY11] = "OUT (1)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY12] = "OUT (1)";
+    patchOutLabel[Multiples2to4_CONSTANTS.PATCHOUT_COPY13] = "OUT (1)";
   }
   
   //Implement in each module to do any per-draw-iteration updates

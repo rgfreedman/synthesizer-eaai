@@ -51,10 +51,10 @@ public class ModuleChooser extends SynthModule
     moduleName = "Add Module";
     patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_ENVGEN] = "EG";
     patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_LFO] = "LFO";
-    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MIX1_8] = "MIXER (8->1)";
-    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MIX4_2] = "MIXER (4->2)";
-    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MULT1_8] = "MULT (1->8)";
-    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MULT2_4] = "MULT (2->4)";
+    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MIX1_8] = "MIX 8->1";
+    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MIX4_2] = "MIX 4->2";
+    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MULT1_8] = "MLT 1->8";
+    patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_MULT2_4] = "MLT 2->4";
     patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_NOISEGEN] = "NG";
     patchInLabel[ModuleChooser_CONSTANTS.PATCHIN_POWER] = "POWER";
     //Not all fit on the Patch In side; continue on Patch Out side

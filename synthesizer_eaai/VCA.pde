@@ -18,7 +18,8 @@ public static class VCA_CONSTANTS
   
   //Indeces for knobs - just the amplitude for a constant modification (can also make
   //                    > 1 via the knob for frequency modulation purposes)
-  public static final int KNOB_AMP = 0;
+  //NOTE: Offset in index allows nicer spacing
+  public static final int KNOB_AMP = 1; //0;
   public static final int TOTAL_KNOB = KNOB_AMP + 1;
   
   //Indeces for output patches - this is the modified waveform
@@ -43,7 +44,8 @@ public class VCA extends SynthModule
     super(VCA_CONSTANTS.TOTAL_PATCHIN, VCA_CONSTANTS.TOTAL_PATCHOUT, VCA_CONSTANTS.TOTAL_KNOB);
 
     //Now fill in the knobs
-    knobs[VCA_CONSTANTS.KNOB_AMP] = new Knob(0.0, 100.0); //Amplitude is in [0,100]
+    //The amplitude value knob is bound based on voltage (for frequency modulation purposes), but should be [0,1] for actual volume's sake
+    knobs[VCA_CONSTANTS.KNOB_AMP] = new Knob(0.0, max(1.0, Audio_CONSTANTS.MAX_VOLT / 2.0)); //Amplitude is in [0,100]
     
     //Label for knob in GUI
     knobsLabel[VCA_CONSTANTS.KNOB_AMP] = "AMP";

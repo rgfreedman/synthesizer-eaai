@@ -52,7 +52,7 @@ public class Power extends SynthModule
     patchOut[Power_CONSTANTS.PATCHOUT_POWER] = toVolts;
     
     //Label for the patch in the GUI
-    patchOutLabel[Power_CONSTANTS.PATCHOUT_POWER] = "FREQ OUT";
+    patchOutLabel[Power_CONSTANTS.PATCHOUT_POWER] = "CV OUT";
     moduleName = "Power";
   }
   

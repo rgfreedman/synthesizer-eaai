@@ -66,10 +66,10 @@ public class NoiseGenerator extends SynthModule
     patchOut[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = out_brown;
     
     //Labels for the patches in the GUI
-    patchInLabel[NoiseGenerator_CONSTANTS.PATCHIN_AMP] = "AMP";
-    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_WHITE] = "WHITE NOISE";
-    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_PINK] = "PINK NOISE";
-    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = "BROWN NOISE";
+    patchInLabel[NoiseGenerator_CONSTANTS.PATCHIN_AMP] = "AMP IN";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_WHITE] = "WHITE";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_PINK] = "PINK";
+    patchOutLabel[NoiseGenerator_CONSTANTS.PATCHOUT_BROWN] = "BROWN";
     moduleName = "Noise Generator";
     
     //Setup the patchwork for the internal modules

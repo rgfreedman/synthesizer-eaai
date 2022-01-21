@@ -88,14 +88,14 @@ public class VCO extends SynthModule
     patchOut[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = out_quarterpulse;
     
     //Labels for patches in GUI
-    patchInLabel[VCO_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
+    patchInLabel[VCO_CONSTANTS.PATCHIN_FREQ] = "CV IN";
     patchInLabel[VCO_CONSTANTS.PATCHIN_AMP] = "AMP IN";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SINE] = "SINE WAVE";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE WAVE";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE WAVE";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SAW] = "SAW WAVE";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
-    patchOutLabel[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SINE] = "SINE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_SAW] = "SAW";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR";
+    patchOutLabel[VCO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "1/4 PULSE";
     moduleName = "VCO";
     
     //Setup the patchwork for the internal modules

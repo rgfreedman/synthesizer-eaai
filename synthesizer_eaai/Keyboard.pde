@@ -108,7 +108,7 @@ public class Keyboard extends SynthModule
       patchOut[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = toVolts[i];
       patchOut[Keyboard_CONSTANTS.PATCHOUT_GATE0 + i] = gates[i];
       //Label for the GUI
-      patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = "FREQ OUT";
+      patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_KEY0 + i] = "CV OUT";
       patchOutLabel[Keyboard_CONSTANTS.PATCHOUT_GATE0 + i] = "GATE OUT";
     }
     moduleName = "Keyboard";

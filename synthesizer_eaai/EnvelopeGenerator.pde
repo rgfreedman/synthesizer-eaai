@@ -103,7 +103,7 @@ public class EnvelopeGenerator extends SynthModule
     
     //Labels for the patches in the GUI
     patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
-    patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_GATE] = "GATE";
+    patchInLabel[EnvelopeGenerator_CONSTANTS.PATCHIN_GATE] = "GATE IN";
     patchOutLabel[EnvelopeGenerator_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
     moduleName = "Envelope Generator";
     

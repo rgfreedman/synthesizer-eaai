@@ -108,15 +108,15 @@ public class Mixer8to1 extends SynthModule
     
     //Labels for the patches in the GUI
     moduleName = "Mixer (8->1)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL3] = "WAVE IN (3)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL4] = "WAVE IN (4)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL5] = "WAVE IN (5)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL6] = "WAVE IN (6)";
-    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL7] = "WAVE IN (7)";
-    patchOutLabel[Mixer8to1_CONSTANTS.PATCHOUT_MERGE] = "WAVE OUT";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL0] = "IN (0)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL1] = "IN (1)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL2] = "IN (2)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL3] = "IN (3)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL4] = "IN (4)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL5] = "IN (5)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL6] = "IN (6)";
+    patchInLabel[Mixer8to1_CONSTANTS.PATCHIN_ORIGINAL7] = "IN (7)";
+    patchOutLabel[Mixer8to1_CONSTANTS.PATCHOUT_MERGE] = "OUT (0-7)";
     
     //Setup the patchwork for the internal modules
     knobs[Mixer8to1_CONSTANTS.KNOB_VOL0].getCurrentValue().patch(volModifier0.amplitude);
@@ -172,8 +172,9 @@ public static class Mixer4to2_CONSTANTS
   public static final int TOTAL_KNOB = KNOB_VOL7 + 1;
   
   //Indeces for output patches - this is the merged waveform
+  //NOTE: Offset in index allows nicer spacing
   public static final int PATCHOUT_MERGE0 = 0;
-  public static final int PATCHOUT_MERGE1 = PATCHOUT_MERGE0 + 1;
+  public static final int PATCHOUT_MERGE1 = 4; //PATCHOUT_MERGE0 + 1;
   public static final int TOTAL_PATCHOUT = PATCHOUT_MERGE1 + 1;
 }
 
@@ -247,16 +248,16 @@ public class Mixer4to2 extends SynthModule
     
     //Labels for the patches in the GUI
     moduleName = "Mixer (4->2)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL3] = "WAVE IN (3)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL4] = "WAVE IN (4)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL5] = "WAVE IN (5)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL6] = "WAVE IN (6)";
-    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL7] = "WAVE IN (7)";
-    patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE0] = "WAVE OUT (0-3)";
-    patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE1] = "WAVE OUT (4-7)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL0] = "IN (0)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL1] = "IN (1)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL2] = "IN (2)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL3] = "IN (3)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL4] = "IN (4)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL5] = "IN (5)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL6] = "IN (6)";
+    patchInLabel[Mixer4to2_CONSTANTS.PATCHIN_ORIGINAL7] = "IN (7)";
+    patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE0] = "OUT (0-3)";
+    patchOutLabel[Mixer4to2_CONSTANTS.PATCHOUT_MERGE1] = "OUT (4-7)";
     
     //Setup the patchwork for the internal modules
     knobs[Mixer4to2_CONSTANTS.KNOB_VOL0].getCurrentValue().patch(volModifier0.amplitude);
@@ -438,7 +439,7 @@ public class MixerInstrument extends SynthModule
     patchOut[MixerInstrument_CONSTANTS.PATCHOUT_MERGE] = blender;
     
     //Labels for the patches in the GUI
-    moduleName = "Mixer (to Speaker)";
+    moduleName = "Mixer (Speaker)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL0] = "WAVE IN (0)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL1] = "WAVE IN (1)";
     patchInLabel[MixerInstrument_CONSTANTS.PATCHIN_ORIGINAL2] = "WAVE IN (2)";

@@ -87,14 +87,16 @@ public class LFO extends SynthModule
     
     //Labels for the patches in the GUI
     moduleName = "LFO";
-    patchInLabel[LFO_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
+    patchInLabel[LFO_CONSTANTS.PATCHIN_FREQ] = "CV IN";
     patchInLabel[LFO_CONSTANTS.PATCHIN_AMP] = "AMP";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SINE] = "SINE WAVE";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE WAVE";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE WAVE";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SAW] = "SAW WAVE";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR WAVE";
-    patchOutLabel[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "QUARTER PULSE WAVE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SINE] = "SINE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SQUARE] = "SQUARE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_TRIANGLE] = "TRIANGLE";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_SAW] = "SAW";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_PHASOR] = "PHASOR";
+    patchOutLabel[LFO_CONSTANTS.PATCHOUT_QUARTERPULSE] = "1/4 PULSE";
+    knobsLabel[LFO_CONSTANTS.KNOB_FREQ] = "FREQ";
+    knobsLabel[LFO_CONSTANTS.KNOB_AMP] = "AMP";
     
     //Setup the patchwork for the internal modules
     knobs[LFO_CONSTANTS.KNOB_FREQ].getCurrentValue().patch(totalFrequency);

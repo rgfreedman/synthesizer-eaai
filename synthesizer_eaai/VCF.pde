@@ -18,7 +18,8 @@ public static class VCF_CONSTANTS
   public static final int TOTAL_PATCHIN = PATCHIN_RES + 1;
   
   //Indeces for knobs - same as input patches in this case
-  public static final int KNOB_FREQ = 0;
+  //NOTE: Offset in index allows nicer spacing
+  public static final int KNOB_FREQ = 1; //0;
   public static final int KNOB_RES = KNOB_FREQ + 1;
   public static final int KNOB_PASS = KNOB_RES + 1;
   public static final int TOTAL_KNOB = KNOB_PASS + 1;
@@ -74,8 +75,8 @@ public class VCF extends SynthModule
     
     //Label for patches in GUI
     patchInLabel[VCF_CONSTANTS.PATCHIN_WAVE] = "WAVE IN";
-    patchInLabel[VCF_CONSTANTS.PATCHIN_FREQ] = "FREQ IN";
-    patchInLabel[VCF_CONSTANTS.PATCHIN_RES] = "RESONANCE IN";
+    patchInLabel[VCF_CONSTANTS.PATCHIN_FREQ] = "CV IN";
+    patchInLabel[VCF_CONSTANTS.PATCHIN_RES] = "RES IN";
     patchOutLabel[VCF_CONSTANTS.PATCHOUT_WAVE] = "WAVE OUT";
     moduleName = "VCF";
     

@@ -102,8 +102,8 @@ void setup()
   
   //Now there is enough information to bind the keys to the keyboard, if a keyboard exists
   //Place the hands a little away from the center (rather than at extreme ends) of the keyboard
-  left_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) - KEYS_PER_HAND;//0;
-  right_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) + KEYS_PER_HAND - 1;//Render_CONSTANTS.KEYBOARD_KEYS_TOTAL - KEYS_PER_HAND; //This is a natural key, and will have one key off the keyboard bounds
+  left_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) - KEYS_PER_HAND;//0; //This is a natural key, starting at E4
+  right_hand_curIndex = (Render_CONSTANTS.KEYBOARD_KEYS_TOTAL / 2) + KEYS_PER_HAND - 2;//Render_CONSTANTS.KEYBOARD_KEYS_TOTAL - KEYS_PER_HAND; //This is a natural key, starting at E6
   //NOTE: realignment is now done in setCurrentInstrument, called from setupBlankInstruments
   //realignKeyboard(LEFT_HAND, left_hand_curIndex);
   //realignKeyboard(RIGHT_HAND, right_hand_curIndex);
