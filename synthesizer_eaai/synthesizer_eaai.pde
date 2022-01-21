@@ -68,10 +68,6 @@ private HashMap<Character, Integer> guiKeyBindings;
 public int MAX_INSTRUMENTS = 2; //16;
 public final char[] INSTRUMENT_HOTKEYS = {'`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '[', ']', '\\'};
 
-//User IDs will be assigned via socket support to know who took which actions, and
-//  direct interactions with the GUI will be a single user ID
-public int GUI_USER = 0;
-
 void setup()
 {
   //NOTE: Must provide magic numbers to size(...), not static constants
@@ -120,6 +116,9 @@ void setup()
   }
   
   guiKeyBindings = new HashMap();
+  
+  //Before entering the draw loop and such, let the agent perform any necessary setup
+  setup_agent();
 }
 
 void draw()
@@ -147,6 +146,9 @@ void draw()
   {
     instruments.get(currentInstrument).render();
   }
+  
+  //Let the agent perform any necessary change(s) through its own commands
+  draw_agent();
 }
 
 //Used to setup a blank custom instrument with no preloaded features
@@ -787,7 +789,7 @@ void mouseReleased()
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            commandNewPatch(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
+            commandAddPatch(mouseTargetInstrumentIndex, mouseTargetModuleIndex, mouseTargetPatchOutIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], GUI_USER);
           }
         }
       }
@@ -846,7 +848,7 @@ void mouseReleased()
           //If there is no previous target information, then the action is adding a new patch cable from the press to release foci
           else
           {
-            commandNewPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], mouseTargetModuleIndex, mouseTargetPatchInIndex, GUI_USER);
+            commandAddPatch(mouseTargetInstrumentIndex, instruments.get(currentInstrument).findSynthModuleIndex(focus), focusDetails[Render_CONSTANTS.SYNTHMODULE_FOCUS_INDEX], mouseTargetModuleIndex, mouseTargetPatchInIndex, GUI_USER);
           }
         }
       }
@@ -1252,218 +1254,6 @@ void keyTyped()
       setCurrentInstrument(i);
       break;
     }
-  }
-}
-
-/*---Functions for operating the interface elements with the mouse and/or keyboard---*/
-
-//Identify the mouse's horizontal position relative to the knob to set its position
-void commandAdjustKnob(int instrumentIndex, int moduleIndex, int knobIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getKnob(knobIndex) == null))
-  {
-    return;
-  }
-  
-  Knob k = instruments.get(instrumentIndex).getSynthModule(moduleIndex).getKnob(knobIndex);
-  int kTopLeftX = k.getTopLeftX();
-  int kWidth = k.getWidth();
-  //If too far to the left, then set the position to 0 (farthest left)
-  if(mouseX < kTopLeftX)
-  {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 0.0);
-  }
-  //If too far to the right, then set the position to 1 (farthest right)
-  else if(mouseX > (kTopLeftX + kWidth))
-  {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, 1.0);
-  }
-  //When in the middle, interpolate position
-  else
-  {
-    instruments.get(instrumentIndex).setKnob(moduleIndex, knobIndex, (float)(mouseX - kTopLeftX) / (float)kWidth);
-  }
-}
-
-//Create a new patch and plug it into the instrument
-void commandNewPatch(int instrumentIndex, int moduleOutIndex, int patchOutIndex, int moduleInIndex, int patchInIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchX is the UGen (should not be null), and getCableX is the PatchCable (should be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex).getPatchOut(patchOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleOutIndex).getCableOut(patchOutIndex) != null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex).getPatchIn(patchInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleInIndex).getCableIn(patchInIndex) != null))
-  {
-    return;
-  }
-  
-  //Simply add the specified patch cable, generating a new object to pass in
-  instruments.get(instrumentIndex).addPatchCable(new PatchCable(instruments.get(instrumentIndex).getSynthModule(moduleOutIndex), patchOutIndex, instruments.get(instrumentIndex).getSynthModule(moduleInIndex), patchInIndex));
-}
-
-//Take an existing patch and replug its output patch elsewhere in the instrument
-void commandMovePatchOut(int instrumentIndex, int moduleFromOutIndex, int patchFromOutIndex, int moduleToOutIndex, int patchToOutIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should be null in To, not null in From) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getPatchOut(patchFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getCableOut(patchFromOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex).getPatchOut(patchToOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToOutIndex).getCableOut(patchToOutIndex) != null))
-  {
-    return;
-  }
-  
-  //Simply set the specified output patch cable, using the cable specified in From
-  instruments.get(instrumentIndex).setPatchOut(moduleToOutIndex, patchToOutIndex, instruments.get(instrumentIndex).getSynthModule(moduleFromOutIndex).getCableOut(patchFromOutIndex));
-}
-
-//Take an existing patch and replug its input patch elsewhere in the instrument
-void commandMovePatchIn(int instrumentIndex, int moduleFromInIndex, int patchFromInIndex, int moduleToInIndex, int patchToInIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should be null in To, not null in From) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getPatchIn(patchFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getCableIn(patchFromInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex).getPatchIn(patchToInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleToInIndex).getCableIn(patchToInIndex) != null))
-  {
-    return;
-  }
-  
-  //Simply set the specified output patch cable, using the cable specified in From
-  instruments.get(instrumentIndex).setPatchIn(moduleToInIndex, patchToInIndex, instruments.get(instrumentIndex).getSynthModule(moduleFromInIndex).getCableIn(patchFromInIndex));
-}
-
-//Take an existing patch and remove it from the instrument
-void commandRemovePatchOut(int instrumentIndex, int moduleIndex, int patchOutIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchOut is the UGen (should not be null), and getCableOut is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getPatchOut(patchOutIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableOut(patchOutIndex) == null))
-  {
-    return;
-  }
-  
-  //Simply remove the patch cable with specified output
-  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableOut(patchOutIndex));
-}
-
-//Take an existing patch and remove it from the instrument
-void commandRemovePatchIn(int instrumentIndex, int moduleIndex, int patchInIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getPatchIn(patchInIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableIn(patchInIndex) == null))
-  {
-    return;
-  }
-  
-  //Simply remove the patch cable with specified input
-  instruments.get(instrumentIndex).removePatchCable(instruments.get(instrumentIndex).getSynthModule(moduleIndex).getCableIn(patchInIndex));
-}
-
-//Adds a module to the instrument
-void commandAddModule(int instrumentIndex, int moduleID, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null))
-  {
-    return;
-  }
-  
-  //Simply add the specified module
-  instruments.get(instrumentIndex).addSynthModule(moduleID);
-}
-
-//Removes a module from the instrument
-void commandRemoveModule(int instrumentIndex, int moduleIndex, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (instruments.get(instrumentIndex).getSynthModule(moduleIndex) == null))
-  {
-    return;
-  }
-  
-  //Simply remove the specified module
-  instruments.get(instrumentIndex).removeSynthModule(moduleIndex);
-}
-
-//Starts playing a note from the instrument (can be a key or a frequency assigned to the binding)
-void commandStartNote(int instrumentIndex, int midiValue, char binding, int userID)
-{
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
-  {
-    return;
-  }
-  commandStartNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding, userID);
-}
-void commandStartNote(int instrumentIndex, float frequency, char binding, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (frequency < Audio_CONSTANTS.MIN_FREQ) || (frequency > Audio_CONSTANTS.MAX_FREQ))
-  {
-    return;
-  }
-  
-  //Simply start the note with the bound char value
-  int assigned = ((Keyboard)instruments.get(instrumentIndex).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).set_key(binding, frequency);
-  if(DEBUG_INTERFACE_KEYBOARD)
-  {
-    println("Tried to play frequency " + frequency + " with key binding " + binding + " -> result: " + assigned);
-  }
-}
-
-//Stops playing a note from the instrument (can be a key or a frequency assigned to the binding)
-void commandStopNote(int instrumentIndex, int midiValue, char binding, int userID)
-{
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (midiValue < midiNum[0]) || (midiValue > midiNum[midiNum.length - 1]))
-  {
-    return;
-  }
-  commandStopNote(instrumentIndex, midiFreq[midiValue - midiNum[0]], binding, userID);
-}
-void commandStopNote(int instrumentIndex, float frequency, char binding, int userID)
-{
-  //Make sure the indeces all exist and are not null before beginning
-  //NOTE: The getPatchIn is the UGen (should not be null), and getCableIn is the PatchCable (should not be null) 
-  if((instrumentIndex < 0) || (instrumentIndex >= instruments.size()) || (instruments.get(instrumentIndex) == null)
-     || (frequency < Audio_CONSTANTS.MIN_FREQ) || (frequency > Audio_CONSTANTS.MAX_FREQ))
-  {
-    return;
-  }
-  
-  //Simply start the note with the bound char value
-  boolean unassigned = ((Keyboard)instruments.get(instrumentIndex).getSynthModule(CustomInstrument_CONSTANTS.KEYBOARD_INDEX)).unset_key(binding);
-  if(DEBUG_INTERFACE_KEYBOARD)
-  {
-    println("Tried to halt frequency " + frequency + " with key binding " + binding + " -> result: " + unassigned);
   }
 }
 
