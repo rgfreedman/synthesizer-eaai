@@ -14,4 +14,10 @@ limitations under the License.
 
 ------------------------------------------------------------------
 
-This software only imports Minim as a library and uses its classes, methods, and API without any modification.  Minim is not included in this software and must be downloaded and installed separately.  Because Minim is licensed under the GNU Lesser General Public License (https://www.gnu.org/licenses/lgpl-3.0-standalone.html), this usage and lack of inclusion grants this software an exception from having to use a GNU GPL-based license.
+This software only imports Minim as a library and uses its classes, 
+methods, and API without any modification.  Minim is not included in 
+this software and must be downloaded and installed separately.  Because
+Minim is licensed under the GNU Lesser General Public License 
+(https://www.gnu.org/licenses/lgpl-3.0-standalone.html), this usage and 
+lack of inclusion grants this software an exception from having to use 
+a GNU GPL-based license.
